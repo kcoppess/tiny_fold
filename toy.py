@@ -144,21 +144,21 @@ def circular_sequence_partition(g_base_pair, g_loop, g_stack, N):
     for l in range(1, N+1): #length of subsequence
         for i in range(0, N-l+1): # start of subsequence
             j = i + l - 1
-            if j - i > 3 and (i + N) - j > 3 and g_base_pair[i,j]: # checking that bases are at least 4 positions apart on both sides
+            if j - i > 3 and (i + N) - j > 3 and g_base_pair[i,j]: # checking that base pair can form and bases are at least 4 positions apart on both sides
                 Qb[i,j] = Q_hairpin(g_base_pair[i,j], g_loop)
-            else:
+            else:  # hairpin not possible
                 Qb[i,j] = 0.0
             for d in range(i+1,j-4):
                 for e in range(d+4,j):
                     interior_loop_type = ''
                     if j - i > 3 and (i + N) - j > 3 and (d + N) - e > 3: #checking that the bases in each base pair are at least 4 positions apart
-                        if g_base_pair[i,j] and g_base_pair[d,e]:
+                        if g_base_pair[i,j] and g_base_pair[d,e]: # interior loop possible
                             if i+1 == d and e+1 == j: #stacked
                                 interior_loop_type = 's' #g_interior = g_base_pair[i,j] + g_stack
                             else: #loop
                                 interior_loop_type = 'l' #g_interior = g_base_pair[i,j] + g_loop
                             Qb[i,j] += Qb[d,e] * Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type)
-                        else:
+                        else: # interior loop not possible
                             Qb[i,j] += 0.0
                     else:
                         Qb[i,j] += 0.0
@@ -171,7 +171,7 @@ def circular_sequence_partition(g_base_pair, g_loop, g_stack, N):
                         else:
                             if e == N-1 and Qb[0,d-1] and Qb[d,N-1]: # to account for stacked pair forming when chain is closed
                                 Q[i,j] += (Q[0,d-1] + Qb[0,d-1]*(np.exp(-(g_stack-g_loop)/(R*T)) - 1))*Qb[d,N-1]*np.exp(-g_loop/(R*T))
-                            else:
+                            else: # to account for interior loop forming when chain is closed
                                 Q[i,j] += Q[i,d-1]*Qb[d,e]*np.exp(-g_loop/(R*T))
             else:
                 for d in range(i,j-3):
