@@ -1,10 +1,10 @@
-# modified: August 10, 2017
+# modified: August 14, 2017
 # generates random RNA sequences and partition functions
 import random
 import partition as z
 import numpy as np
 
-f = open('sequences.txt','w')
+f = open('sequences_train.txt','w')
 
 M = 50
 

@@ -2,7 +2,7 @@
 # version 2.0
 # toy model to calculate partition function for a given sequence
 # based off of NUPACK pseudo-code (N^4) given in Dirks & Pierce 2003
-# TODO IGNORING MULTILOOPS
+# NOTE IGNORING MULTILOOPS
 import numpy as np
 
 '''all free energy parameters in kcal/mol'''
