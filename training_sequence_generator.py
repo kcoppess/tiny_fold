@@ -18,6 +18,8 @@ training_data = np.zeros(M) # storing values of partition function
 sequences = []              # corresponding RNA sequence
 for i in range(M):
     sequence = ''.join(random.choice('AUGC') for _ in range(random.randint(5,21)))
+    if random.randint(0,1000) < 500: #generating circular sequences
+        sequence = sequence + '-'
     N = len(sequence)
     sequences.append(sequence)
     

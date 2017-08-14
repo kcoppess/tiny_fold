@@ -2,6 +2,10 @@
 # toy model to calculate partition function for a given sequence
 # based off of NUPACK pseudo-code (N^4) given in Dirks & Pierce 2003
 # NOTE IGNORING MULTILOOPS
+import time
+
+start = time.time()
+
 import numpy as np
 import partition as z
 import test_sequence_generator as test
@@ -42,3 +46,7 @@ print '----------------------------------------\n'
 print 'Test:   '+str(test.test_data)
 print 'Pred:   '+str(predicted_partition(model_param))
 print 'fr err: '+str(frac_resid(model_param))
+
+end = time.time()
+
+print '\n'+str(end-start)
