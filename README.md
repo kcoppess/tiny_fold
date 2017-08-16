@@ -4,6 +4,9 @@
     holds function definitions for calculating the partition function and its derivative for both linear and circular RNA sequences
     recursion modified from NUPACK n^4 algorithm in Dirks and Pierce 2003
 
+### log_partition.py
+    holds function definitions for calculating log(partition) and its derivative for both linear and circular RNA sequences
+
 ### training_sequence_generator.py
     generates training set of random RNA sequences and calculates their partition functions
 

@@ -1,7 +1,7 @@
-# modified: August 14, 2017
-# generates random RNA sequences and partition functions to test trained model on
+# modified: August 16, 2017
+# generates random RNA sequences and log(partition) to test trained model on
 import random
-import partition as z
+import log_partition as log_z
 import numpy as np
 
 f = open('sequences_test.txt','w')
@@ -33,12 +33,12 @@ for i in range(M):
     g_base_pair = np.zeros((N,N))                                                    
     for m in range(N):
         for n in range(N):
-            g_base_pair[m,n] = z.free_energy_pair(sequence[m], sequence[n], g_AU, g_GU, g_GC)
+            g_base_pair[m,n] = log_z.free_energy_pair(sequence[m], sequence[n], g_AU, g_GU, g_GC)
                                                                              
     if is_circular:
-        test_data[i] = z.circular_sequence_partition(g_base_pair, g_loop, g_stack, N)
+        test_data[i] = log_z.circular_sequence_logpartition(g_base_pair, g_loop, g_stack, N)
     else:
-        test_data[i] = z.linear_sequence_partition(g_base_pair, g_loop, g_stack, N)
+        test_data[i] = log_z.linear_sequence_logpartition(g_base_pair, g_loop, g_stack, N)
     f.write(str(sequence)+' '+str(test_data[i])+'\n')
 
 f.close()
