@@ -6,7 +6,7 @@ import numpy as np
 
 f = open('sequences_train.txt','w')
 
-M = 50
+M = 10
 
 g_AU = 5.69 # kcal/mol
 g_GU = 6.0  # kcal/mol
@@ -17,7 +17,7 @@ g_stack = -7.09 # kcal/mol
 training_data = np.zeros(M) # storing values of partition function
 sequences = []              # corresponding RNA sequence
 for i in range(M):
-    sequence = ''.join(random.choice('AUGC') for _ in range(random.randint(5,21)))
+    sequence = ''.join(random.choice('AUGC') for _ in range(51)) #range(random.randint(5,21)))
     if random.randint(0,1000) < 500: #generating circular sequences
         sequence = sequence + '-'
     N = len(sequence)

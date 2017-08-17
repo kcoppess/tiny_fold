@@ -68,7 +68,8 @@ def predicted_gradient(energy_param):
 # energy_param = [g_AU,g_GU,g_GC,g_loop_g_stack]
 def ssr(energy_param):
     #NOTE -g_loop/R*T put in to try to break degeneracy
-    residuals = (tr.training_data - energy_param[3]/(log_z.R*log_z.T)) - (predicted_logpartition(energy_param) - tr.g_loop/(log_z.R*log_z.T))
+    #residuals = (tr.training_data - energy_param[3]/(log_z.R*log_z.T)) - (predicted_logpartition(energy_param) - tr.g_loop/(log_z.R*log_z.T))
+    residuals = tr.training_data - predicted_logpartition(energy_param)
     return np.dot(residuals, residuals) #+ (100000000000000*(tr.g_loop - energy_param[3]))**2 #NOTE second term to help deal with degeneracy
 
 def resid(energy_param):
@@ -87,7 +88,7 @@ def check(x):
 #NOTE will not converge to correct parameters if one of the initial guesses is 0.0
 param = np.array([1.,2.,3.,4.,5.])
 
-final = so.fmin_bfgs(ssr,param,fprime=ssr_prime,gtol=1e-8,epsilon=log_z.h)
-#final_res = so.minimize(ssr,param,method='Nelder-Mead',tol=1e-8,options={'maxiter':10000,'maxfev':10000})
-#final = final_res.x
-print str(final)+'\n'
+#final = so.fmin_bfgs(ssr,param,fprime=ssr_prime,gtol=1e-8,epsilon=log_z.h)
+final_res = so.minimize(ssr,param,method='Nelder-Mead',tol=1e-8,options={'maxiter':10000,'maxfev':10000})
+final = final_res.x
+print str(final_res)+'\n'
