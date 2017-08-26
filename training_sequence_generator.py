@@ -1,12 +1,12 @@
-# modified: August 16, 2017
+# modified: August 25, 2017
 # generates random RNA sequences and log(partition)
 import random
-import log_partition as log_z
+import log_partition as z
 import numpy as np
 
 f = open('sequences_train.txt','w')
 
-M = 10
+M = 50
 
 g_AU = 5.69 # kcal/mol
 g_GU = 6.0  # kcal/mol
@@ -17,7 +17,7 @@ g_stack = -7.09 # kcal/mol
 training_data = np.zeros(M) # storing values of partition function
 sequences = []              # corresponding RNA sequence
 for i in range(M):
-    sequence = ''.join(random.choice('AUGC') for _ in range(51)) #range(random.randint(5,21)))
+    sequence = ''.join(random.choice('AUGC') for _ in range(random.randint(10,21)))
     if random.randint(0,1000) < 500: #generating circular sequences
         sequence = sequence + '-'
     N = len(sequence)
@@ -33,12 +33,12 @@ for i in range(M):
     g_base_pair = np.zeros((N,N))                                                    
     for m in range(N):
         for n in range(N):
-            g_base_pair[m,n] = log_z.free_energy_pair(sequence[m], sequence[n], g_AU, g_GU, g_GC)
+            g_base_pair[m,n] = z.free_energy_pair(sequence[m], sequence[n], g_AU, g_GU, g_GC)
                                                                              
     if is_circular:
-        training_data[i] = log_z.circular_sequence_logpartition(g_base_pair, g_loop, g_stack, N)
+        training_data[i] = z.circular_sequence_partition(g_base_pair, g_loop, g_stack, N)
     else:
-        training_data[i] = log_z.linear_sequence_logpartition(g_base_pair, g_loop, g_stack, N)
+        training_data[i] = z.linear_sequence_partition(g_base_pair, g_loop, g_stack, N)
     f.write(str(sequence)+' '+str(training_data[i])+'\n')
 
 f.close()

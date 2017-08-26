@@ -36,7 +36,7 @@ def g_interior(g_BP, g_loop, g_stack, loop_type):
         print str(loop_type)+": Invalid type of interior loop"
         return 0.0
 
-def linear_sequence_partition(g_base_pair, g_loop, g_stack, N):
+def linear_sequence_logpartition(g_base_pair, g_loop, g_stack, N):
     # initializing general partition matrix
     Q = [[[0] for i in range(N)] for i in range(N)] # stores a,b,c, etc in exp(a) + exp(b) + ...
     
@@ -73,7 +73,7 @@ def linear_sequence_partition(g_base_pair, g_loop, g_stack, N):
 
 
 # using finite difference method
-def linear_sequence_derivatives(g_base_pair, g_loop, g_stack, N, g): # g : parameter that differentiating wrt
+def linear_sequence_logderivatives(g_base_pair, g_loop, g_stack, N, g): # g : parameter that differentiating wrt
     # initializing general partition matrix
     Q = np.zeros((N,N))
     for m in range(N):
@@ -130,7 +130,7 @@ def linear_sequence_derivatives(g_base_pair, g_loop, g_stack, N, g): # g : param
                         dQ[i,j] += dQ[i,d-1]*Q[d,e] + Q[i,d-1]*dQb[d,e]
     return dQ[0,N-1]/z.linear_sequence_partition(g_base_pair, g_loop, g_stack, N)
 
-def circular_sequence_partition(g_base_pair, g_loop, g_stack, N):
+def circular_sequence_logpartition(g_base_pair, g_loop, g_stack, N):
     # initializing general partition matrix
     Q = [[[0] for i in range(N)] for i in range(N)] # stores a,b,c, etc in exp(a) + exp(b) + ...
     
@@ -188,7 +188,7 @@ def circular_sequence_partition(g_base_pair, g_loop, g_stack, N):
     return sm.logsumexp(Q[0][N-1])
 
 
-def circular_sequence_derivatives(g_base_pair, g_loop, g_stack, N, g):
+def circular_sequence_logderivatives(g_base_pair, g_loop, g_stack, N, g):
     Q = np.zeros((N,N))
     for m in range(N):
         Q[m,m-1] = 1.0
