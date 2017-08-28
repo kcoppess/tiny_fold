@@ -1,5 +1,4 @@
-# last modified: August 8, 2017
-# version 2.0
+# last modified: August 27, 2017
 # toy model to calculate partition function for a given sequence
 # based off of NUPACK pseudo-code (N^4) given in Dirks & Pierce 2003
 # NOTE IGNORING MULTILOOPS
@@ -39,7 +38,7 @@ def Q_interior(g_BP, g_loop, g_stack, loop_type):
         print str(loop_type)+": Invalid type of interior loop"
         return 0.0
 
-def linear_sequence_partition(g_base_pair, g_loop, g_stack, N):
+def linear(g_base_pair, g_loop, g_stack, N):
     # initializing general partition matrix
     Q = np.zeros((N,N))
     for m in range(N):
@@ -80,7 +79,7 @@ def linear_sequence_partition(g_base_pair, g_loop, g_stack, N):
 
 
 # using finite difference method
-def linear_sequence_derivatives(g_base_pair, g_loop, g_stack, N, g): # g : parameter that differentiating wrt
+def linear_derivatives(g_base_pair, g_loop, g_stack, N, g): # g : parameter that differentiating wrt
     # initializing general partition matrix
     Q = np.zeros((N,N))
     for m in range(N):
@@ -137,7 +136,7 @@ def linear_sequence_derivatives(g_base_pair, g_loop, g_stack, N, g): # g : param
                         dQ[i,j] += dQ[i,d-1]*Q[d,e] + Q[i,d-1]*dQb[d,e]
     return dQ[0,N-1]
 
-def circular_sequence_partition(g_base_pair, g_loop, g_stack, N):
+def circular(g_base_pair, g_loop, g_stack, N):
     Q = np.zeros((N,N))
     for m in range(N):
         Q[m,m-1] = 1.0
@@ -186,7 +185,7 @@ def circular_sequence_partition(g_base_pair, g_loop, g_stack, N):
     return Q[0,N-1]
 
 
-def circular_sequence_derivatives(g_base_pair, g_loop, g_stack, N, g):
+def circular_derivatives(g_base_pair, g_loop, g_stack, N, g):
     Q = np.zeros((N,N))
     for m in range(N):
         Q[m,m-1] = 1.0
