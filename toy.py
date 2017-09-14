@@ -40,7 +40,7 @@ def predicted_logpartition(energy_param, g_loop, test_sequences):
     return predicted
 
 def frac_resid(energy_param, g_loop, sequences):
-    return abs(test_data - predicted_logpartition(energy_param, g_loop, sequences))/test_data
+    return abs(p.test_data - predicted_logpartition(energy_param, g_loop, sequences))/p.test_data
 
 param = np.array([4., 2., 3., 5.])
 
