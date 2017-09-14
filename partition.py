@@ -1,4 +1,4 @@
-# last modified: August 27, 2017
+# last modified: September 14, 2017
 # toy model to calculate partition function for a given sequence
 # based off of NUPACK pseudo-code (N^4) given in Dirks & Pierce 2003
 # NOTE IGNORING MULTILOOPS
@@ -6,7 +6,7 @@ import numpy as np
 
 '''all free energy parameters in kcal/mol'''
 
-h = 0.00000001 # differentiation step size
+h = 1e-8 # differentiation step size
 
 R = 0.0019872 # kcal/K/mol universal gas constant
 T = 298.15 # K temperature (standard state - room temp)
@@ -100,8 +100,8 @@ def linear_derivatives(g_base_pair, g_loop, g_stack, N, g): # g : parameter that
                 Qb[i,j] = Q_hairpin(g_base_pair[i,j], g_loop)
                 if g == g_base_pair[i,j]:  # differentiating wrt current base pair parameter
                     dQb[i,j] = (Q_hairpin(g_base_pair[i,j] + h, g_loop) - Q_hairpin(g_base_pair[i,j], g_loop))/h
-                elif g == g_loop: # differentiating wrt loop parameter
-                    dQb[i,j] = (Q_hairpin(g_base_pair[i,j], g_loop + h) - Q_hairpin(g_base_pair[i,j], g_loop))/h
+                #elif g == g_loop: # differentiating wrt loop parameter
+                #    dQb[i,j] = (Q_hairpin(g_base_pair[i,j], g_loop + h) - Q_hairpin(g_base_pair[i,j], g_loop))/h
             else: # no hairpin possible
                 Qb[i,j] = 0.0
                 dQb[i,j] = 0.0
@@ -117,8 +117,8 @@ def linear_derivatives(g_base_pair, g_loop, g_stack, N, g): # g : parameter that
                         dQ_int = 0.0 # derivative of Q_interior
                         if g == g_base_pair[i,j]:
                             dQ_int = (Q_interior(g_base_pair[i,j] + h, g_loop, g_stack, interior_loop_type) - Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type))/h
-                        elif g == g_loop and interior_loop_type == 'l':
-                            dQ_int = (Q_interior(g_base_pair[i,j], g_loop + h, g_stack, interior_loop_type) - Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type))/h
+                        #elif g == g_loop and interior_loop_type == 'l':
+                        #    dQ_int = (Q_interior(g_base_pair[i,j], g_loop + h, g_stack, interior_loop_type) - Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type))/h
                         elif g == g_stack and interior_loop_type == 's':
                             dQ_int = (Q_interior(g_base_pair[i,j], g_loop, g_stack + h, interior_loop_type) - Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type))/h
                         dQb[i,j] += dQ_int * Qb[d,e] + Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type) * dQb[d,e]
@@ -133,7 +133,7 @@ def linear_derivatives(g_base_pair, g_loop, g_stack, N, g): # g : parameter that
                         dQ[i,j] += dQb[d,e]
                     else:
                         Q[i,j] += Q[i,d-1]*Qb[d,e]
-                        dQ[i,j] += dQ[i,d-1]*Q[d,e] + Q[i,d-1]*dQb[d,e]
+                        dQ[i,j] += dQ[i,d-1]*Qb[d,e] + Q[i,d-1]*dQb[d,e]
     return dQ[0,N-1]
 
 def circular(g_base_pair, g_loop, g_stack, N):
