@@ -6,7 +6,7 @@ import numpy as np
 
 '''all free energy parameters in kcal/mol'''
 
-h = 1e-8 # differentiation step size
+h = 1e-9 # differentiation step size
 
 R = 0.0019872 # kcal/K/mol universal gas constant
 T = 298.15 # K temperature (standard state - room temp)

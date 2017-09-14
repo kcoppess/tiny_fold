@@ -49,8 +49,8 @@ param = np.array([4., 2., 3., 5.])
 #print train.cost_gradient(actual_param, g_loop, training_data, training_sequences)
 #print so.approx_fprime(actual_param, train.cost, 1e-8, g_loop, training_data, training_sequences)
 
-#optimization = so.minimize(train.cost, param, args=(g_loop, training_data, training_sequences), method='BFGS', jac=train.cost_gradient, tol=1e-8, callback=train.check)
-optimization = so.minimize(train.cost, param, args=(p.g_loop, p.training_data, p.training_sequences), method='BFGS', tol=1e-8, callback=train.check)
+optimization = so.minimize(train.cost, param, args=(p.g_loop, p.training_data, p.training_sequences), method='BFGS', jac=train.cost_gradient, tol=1e-8, callback=train.check)
+#optimization = so.minimize(train.cost, param, args=(p.g_loop, p.training_data, p.training_sequences), method='BFGS', tol=1e-8, callback=train.check)
 
 final = optimization.x
 print "minimize completed"
