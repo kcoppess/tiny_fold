@@ -11,7 +11,10 @@ energies = np.array([5.69, 6., 4.09, -7.09])
 
 '''-------COST FUNCTION PARAMETERS-----'''
 # weight on prior term
-w = 0.0001
+w = 1.
+
+# priors
+priors = np.array([5., 6., 4., -7])
 
 '''--------LEARNING PARAMETERS------'''
 # Adam parameters
