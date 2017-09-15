@@ -42,7 +42,7 @@ def predicted_logpartition(energy_param, g_loop, test_sequences):
 def frac_resid(energy_param, g_loop, sequences):
     return abs(p.test_data - predicted_logpartition(energy_param, g_loop, sequences))/p.test_data
 
-param = np.array([4., 2., 3., 5.])
+param = np.array([1., 2., 3., 4.])
 
 #actual_param = np.array([ 4.80680612,  1.60477761,  1.05042392, -2.38723362])
 #print so.check_grad(train.cost, train.cost_gradient, actual_param, g_loop, training_data, training_sequences)

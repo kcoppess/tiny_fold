@@ -63,13 +63,15 @@ def predicted_gradient(energy_param, g_loop, sequences):
 def cost(energy_param, g_loop, training_data, sequences):
     #print energy_param
     residuals = training_data - predicted(energy_param, g_loop, sequences)
-    return np.dot(residuals, residuals) + p.w * np.dot(energy_param, energy_param) #NOTE second term: prior term to deal with vanishing gradient
+    prior = p.priors - energy_param
+    return np.dot(residuals, residuals) + p.w * np.dot(prior, prior) #NOTE second term: prior term to deal with vanishing gradient
 
 # gradient of cost wrt energy parameters
 # NOTE: g_loop is being fixed (only optimizing for 4 parameters)
 def cost_gradient(energy_param, g_loop, training_data, sequences):
     residuals = training_data - predicted(energy_param, g_loop, sequences)
-    grad = (-2)*np.dot(residuals, predicted_gradient(energy_param, g_loop, sequences)) + 2 * p.w * energy_param
+    prior = p.priors - energy_param
+    grad = (-2)*np.dot(residuals, predicted_gradient(energy_param, g_loop, sequences)) - 2 * p.w * prior
     return grad
 
 def check(x):
