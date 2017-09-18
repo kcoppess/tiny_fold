@@ -16,7 +16,8 @@ def gradient(energy_param, sequence, partition):
         is_circular = True
         N = N - 1 # ignoring '-'
 
-    grad = 2 * p.w * energy_param
+    prior = p.priors - energy_param
+    grad = -2 * p.w * prior
     
     # ignoring steric effects, generating base-pair free energy matrix
     g_base_pair = np.zeros((N,N))
@@ -37,7 +38,7 @@ def gradient(energy_param, sequence, partition):
     return grad
 
 def convergence(param, prev_param): 
-    if np.linalg.norm(param - prev_param) < 1e-8:
+    if np.linalg.norm(param - prev_param) < 1e-6:
         return True
     else:
         return False
@@ -46,7 +47,7 @@ def convergence(param, prev_param):
 #actual_param = [5.69, 6., 4.09, 1., -7.09]
 #training_data, sequences = rsg.training_generator(50, actual_param, 10, 21)
 
-param = np.array([4.,2.,3.,5.])
+param = np.array([1.,2.,3.,4.])
 prev_param = np.zeros(4)
 index = range(len(p.training_data))
 
@@ -59,8 +60,11 @@ k = 1
 K = []
 iteration_param = [] # list of updated parameters after each iteration
 
-while not convergence(param, prev_param) and k < 500:
+while not convergence(param, prev_param) and k < 10000:
     random.shuffle(index) # randomly shuffling indexes for each pass through the data
+    if k % 100 == 0:
+        print "Gradient " + str(grad)
+        print "Updated: " + str(param)
     print k
     for i in index:
         prev_param = np.array(param)
