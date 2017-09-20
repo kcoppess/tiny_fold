@@ -91,7 +91,6 @@ def linear(g_base_pair, g_loop, g_stack, N):
             else:
                 bp_prob[i,j] = Q[0, i-1] * Q_bound[i,j] * Q[j+1, N-1] / Q[0, N-1] # if base-pair is not enclosed
                 for k in range(i): #indexing outside bases
-                    print i,j,k
                     for l in range(j+1, N):
                         if k == i-1 and l == j+1:
                             interior_loop_type = 's'
@@ -101,6 +100,59 @@ def linear(g_base_pair, g_loop, g_stack, N):
                             bp_prob[i,j] += bp_prob[k,l] * Q_bound[i,j] * Q_interior(g_base_pair[k,l], g_loop, g_stack, interior_loop_type) / Q_bound[k,l]
     return bp_prob
 
+def trial_linear(base1, base2, g_base_pair, g_loop, g_stack, N):
+    # initializing general partition matrix
+    Q = [[[(1., False)] for i in range(N)] for i in range(N)] # stores exponential terms in partition function and whether the term is for a structure with base-pair in question
+    
+    # initializing bound partition matrix
+    Qb = [[[] for i in range(N)] for i in range(N)]
+    
+    # calculation of partition function
+    for l in range(1,N+1): # iterating over all subsequence lengths
+        for i in range(0,N-l+1): # iterating over all starting positions for subsequences
+            j = i + l - 1 # ending position for subsequence
+            # Qb recursion
+            if j-i > 3 and g_base_pair[i,j]: # if possible hairpin: at least 4 positions apart and able to form a base pair
+                if i == base1 and j == base2:
+                    dependent = True
+                else:
+                    dependent = False
+                Qb[i][j].append((Q_hairpin(g_base_pair[i,j], g_loop), dependent))
+            for d in range(i+1,j-4): # iterate over all possible rightmost pairs
+                for e in range(d+4,j): # i < d < e < j and d,e must be at least 4 positions apart
+                    interior_loop_type = ''
+                    if g_base_pair[i,j] and g_base_pair[d,e]: # possible for both base pairs to form
+                        if i+1 == d and e+1 == j: # if stacked
+                            interior_loop_type = 's'
+                        else: # if loop
+                            interior_loop_type = 'l'
+                        for k in range(len(Qb[d][e])):
+                            if Qb[d][e][k][1] or (i == base1 and j == base2) :
+                                dependent = True
+                            else:
+                                dependent = False
+                            Qb[i][j].append((Qb[d][e][k][0] * Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type), dependent))
+            # Q recursion
+            for d in range(i,j-3): # iterating over all possible rightmost pairs
+                for e in range(d+4,j+1):
+                    if d == 0: # to deal with issue of wrapping around in the last iteration
+                        Q[i][j] += Qb[d][e]
+                    else:
+                        for k in range(len(Q[i][d-1])):
+                            for m in range(len(Qb[d][e])):
+                                if Q[i][d-1][k][1] or Qb[d][e][m][1]:
+                                    dependent = True
+                                else:
+                                    dependent = False
+                                Q[i][j].append((Q[i][d-1][k][0] * Qb[d][e][m][0], dependent))
+    print Q[0][N-1]
+    part = 0.
+    struc = 0.
+    for f in Q[0][N-1]:
+        part += f[0]
+        if f[1]:
+            struc += f[0]
+    return struc/part
 
 # using finite difference method
 def linear_derivatives(g_base_pair, g_loop, g_stack, N, g): # g : parameter that differentiating wrt
