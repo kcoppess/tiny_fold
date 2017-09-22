@@ -3,25 +3,15 @@
 # based off of NUPACK pseudo-code (N^4) given in Dirks & Pierce 2003
 # NOTE IGNORING MULTILOOPS
 import numpy as np
+import parameters as p
 
 '''all free energy parameters in kcal/mol'''
 
-h = 1e-9 # differentiation step size
+h = p.h # differentiation step size
 
-R = 0.0019872 # kcal/K/mol universal gas constant
-T = 298.15 # K temperature (standard state - room temp)
+R = p.R # kcal/K/mol universal gas constant
+T = p.T # K temperature (standard state - room temp)
 
-# b1, b2: bases
-# g_bp: free energy of forming that base pair in kcal/mol
-def free_energy_pair(b1, b2, g_AU, g_UG, g_GC):
-    if (b1 == 'A' and b2 == 'U') or (b1 == 'U' and b2 == 'A'):
-        return g_AU
-    elif (b1 == 'U' and b2 == 'G') or (b1 == 'G' and b2 == 'U'):
-        return g_UG
-    elif (b1 == 'G' and b2 == 'C') or (b1 == 'C' and b2 == 'G'):
-        return g_GC
-    else:
-        return 0.0
 
 # partition contribution from hairpin closed with base pair BP
 def Q_hairpin(g_BP, g_loop):

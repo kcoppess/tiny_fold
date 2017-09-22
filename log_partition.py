@@ -5,18 +5,15 @@
 import numpy as np
 import scipy.misc as sm
 import partition as z
+import parameters as p
 
 '''all free energy parameters in kcal/mol'''
 
-h = z.h # differentiation step size
+h = p.h # differentiation step size
 
-R = z.R # kcal/K/mol universal gas constant
-T = z.T # K temperature (standard state - room temp)
+R = p.R # kcal/K/mol universal gas constant
+T = p.T # K temperature (standard state - room temp)
 
-# b1, b2: bases
-# g_bp: free energy of forming that base pair in kcal/mol
-def free_energy_pair(b1, b2, g_AU, g_UG, g_GC):
-    return z.free_energy_pair(b1, b2, g_AU, g_UG, g_GC)
 
 # free energy contribution from interior loop closed with base pair BP
 # avoids double counting free energy from base pair formation

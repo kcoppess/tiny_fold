@@ -1,8 +1,9 @@
-# modified: August 27, 2017
+# modified: September 22, 2017
 # generates random RNA sequences and log(partition)
 import random
 import log_partition as log_z
 import numpy as np
+import g_matrix as gm
 
 # num_train: number of training sequences to be generated
 # energy_param: [g_AU, g_GU, g_GC, g_stack] in kcal/mol
@@ -28,10 +29,7 @@ def training_generator(num_train, energy_param, g_loop, minlen, maxlen):
         
         # initializing base-pair free energy matrix
         # IGNORING STERIC EFFECTS
-        g_base_pair = np.zeros((N,N))                                                    
-        for m in range(N):
-            for n in range(N):
-                g_base_pair[m,n] = log_z.free_energy_pair(sequence[m], sequence[n], energy_param[0], energy_param[1], energy_param[2])
+        g_base_pair = gm.generator(sequence, energy_param[0], energy_param[1], energy_param[2], N)
         
         if is_circular:
             training_data[i] = log_z.circular(g_base_pair, g_loop, energy_param[3], N)
@@ -65,10 +63,7 @@ def test_generator(num_test, energy_param, g_loop, minlen, maxlen):
         
         # initializing base-pair free energy matrix
         # IGNORING STERIC EFFECTS
-        g_base_pair = np.zeros((N,N))                                                    
-        for m in range(N):
-            for n in range(N):
-                g_base_pair[m,n] = log_z.free_energy_pair(sequence[m], sequence[n], energy_param[0], energy_param[1], energy_param[2])
+        g_base_pair = gm.generator(sequence, energy_param[0], energy_param[1], energy_param[2], N)
         
         if is_circular:
             test_data[i] = log_z.circular(g_base_pair, g_loop, energy_param[3], N)

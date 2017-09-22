@@ -1,10 +1,11 @@
-# modified: Septemeber 14, 2017
+# modified: Septemeber 22, 2017
 # using Adam method
 import numpy as np
 import log_partition as log_z
 #import random_sequence_generator as rsg 
 import parameters as p
 import random
+import g_matrix as gm
 
 # returns gradient of residual squared for particular point
 # NOTE new cost function: sum( (Qi - Q(xi,B))^2 ) + alpha*B^2
@@ -20,10 +21,7 @@ def gradient(energy_param, sequence, partition):
     grad = -2 * p.w * prior
     
     # ignoring steric effects, generating base-pair free energy matrix
-    g_base_pair = np.zeros((N,N))
-    for m in range(N):
-        for n in range(N):
-            g_base_pair[m,n] = log_z.free_energy_pair(sequence[m], sequence[n], energy_param[0], energy_param[1], energy_param[2]) # bp1, bp2, g_AU, g_GU, g_GC
+    g_base_pair = gm.generator(sequence, energy_param[0], energy_param[1], energy_param[2], N)
 
     if is_circular:
         pred_partition = log_z.circular(g_base_pair, p.g_loop, energy_param[3], N)

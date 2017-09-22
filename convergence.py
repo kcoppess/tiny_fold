@@ -3,6 +3,7 @@ import numpy as np
 import log_partition as log_z
 import stochastic_gradient_descent as sgd
 import parameters as p
+import g_matrix as gm
 
 K = sgd.K
 
@@ -14,19 +15,13 @@ sequence = 'ACGCGGUGGGAUUCAC'
 N = len(sequence)
 
 energy_param = p.energies #[5.69, 6., 4.09, 1., -7.09]
-gbp = np.zeros((N,N))
-for m in range(N):
-    for n in range(N):
-        gbp[m,n] = log_z.free_energy_pair(sequence[m], sequence[n], energy_param[0], energy_param[1], energy_param[2])
+gbp = gm.generator(sequence, energy_param[0], energy_param[1], energy_param[2], N)
 
 actual = log_z.linear(gbp, p.g_loop, energy_param[3], N)
 ACTUAL = []
 
 for param in adam_param:
-    g_base_pair = np.zeros((N,N))
-    for m in range(N):
-        for n in range(N):
-            g_base_pair[m,n] = log_z.free_energy_pair(sequence[m], sequence[n], param[0], param[1], param[2])
+    g_base_pair = gm.generator(sequence, param[0], param[1], param[2], N)
     prior = p.priors - param
     adam_Z.append((actual - log_z.linear(g_base_pair, p.g_loop, param[3], N))**2 + p.w*np.dot(prior, prior))
     ACTUAL.append(p.w*np.dot(p.priors - energy_param, p.priors - energy_param))

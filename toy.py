@@ -1,4 +1,4 @@
-# last modified: September 14, 2017
+# last modified: September 22, 2017
 # toy model to calculate log(partition) for a given sequence
 # based off of NUPACK pseudo-code (N^4) given in Dirks & Pierce 2003
 # NOTE IGNORING MULTILOOPS
@@ -12,6 +12,7 @@ import log_partition as log_z
 import train_toy as train
 import scipy.optimize as so
 import parameters as p
+import g_matrix as gm
 
 '''all free energy parameters in kcal/mol'''
 
@@ -28,10 +29,7 @@ def predicted_logpartition(energy_param, g_loop, test_sequences):
         
         # initializing base-pair free energy matrix
         # IGNORING STERIC EFFECTS
-        g_base_pair = np.zeros((N,N))
-        for m in range(N):
-            for n in range(N):
-                g_base_pair[m,n] = log_z.free_energy_pair(sequence[m],sequence[n], energy_param[0], energy_param[1], energy_param[2]) # bp1, bp2, g_AU, g_GU, g_GC
+        g_base_pair = gm.generator(sequence, energy_param[0], energy_param[1], energy_param[2], N)
         
         if is_circular:
             predicted[i] = log_z.circular(g_base_pair, g_loop, energy_param[3], N) # g_base_pair, g_loop, g_stack, N
