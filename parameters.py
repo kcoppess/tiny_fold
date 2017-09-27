@@ -1,6 +1,13 @@
 # holds parameter values for model
 import numpy as np
 
+'''------------CONSTANTS------------'''
+# differentiation step-size
+h = 1e-9
+
+R = 0.0019872 # kcal/K/mol universal gas constant
+T = 298.15 # K temperature (room temp)
+
 '''-------FREE ENERGY PARAMETERS-----'''
 # free energy for forming loop
 g_loop = 1.
@@ -14,7 +21,7 @@ energies = np.array([5.69, 6., 4.09, -7.09])
 w = 1.
 
 # priors
-priors = np.array([5., 6., 4., -7])
+priors = np.array([5.69, 6., 4.09, -7.09])
 
 '''--------LEARNING PARAMETERS------'''
 # Adam parameters

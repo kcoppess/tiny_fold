@@ -17,6 +17,6 @@ def free_energy_pair(b1, b2, g_AU, g_UG, g_GC):
 def generator(sequence, g_au, g_ug, g_gc, N):
     g_base_pair = np.zeros((N,N))
     for n in range(N):
-        for m in range(M):
+        for m in range(N):
             g_base_pair[n,m] = free_energy_pair(sequence[n], sequence[m], g_au, g_ug, g_gc)
     return g_base_pair
