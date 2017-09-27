@@ -274,21 +274,25 @@ def mccaskill_circular(g_base_pair, g_loop, g_stack, N):
         for j in range(N-1, -1, -1): # index for second base
             prefactor = Q_bound[i,j] / Q[0, N-1]
             # term for if base pair is not enclosed
-            bp_prob[i,j] = prefactor * np.exp(-g_loop/(R*T))#Q_hairpin(g_base_pair[i,j], g_loop)
+            bp_prob[i,j] = prefactor * np.exp(-g_loop/(R*T))
             for k in range(i): # left outside pairs
                 for l in range(k+1, i):
-                    if k == i-1 and l == j+1:
+                    if (k == j+1-N) and (l == i-1):
                         interior_loop_type = 's'
+                        bp = prefactor * Q_bound[k,l] * np.exp(-g_stack/(R*T))
                     else:
                         interior_loop_type = 'l'
-                    bp_prob[i,j] += prefactor * Q_bound[k,l] * Q_interior(g_base_pair[k,l], g_loop, g_stack, interior_loop_type)
+                        bp = prefactor * Q_bound[k,l] * np.exp(-g_loop/(R*T))
+                    bp_prob[i,j] += bp
             for k in range(j+1, N): # right outside pairs
                 for l in range(k+1, N):
-                    if k == i-1 and l == j+1:
+                    if k == j+1 and l == i-1+N:
                         interior_loop_type = 's'
+                        bp = prefactor * Q_bound[k,l] * np.exp(-g_stack/(R*T))
                     else:
                         interior_loop_type = 'l'
-                    bp_prob[i,j] += prefactor * Q_bound[k,l] * Q_interior(g_base_pair[k,l], g_loop, g_stack, interior_loop_type)
+                        bp = prefactor * Q_bound[k,l] * np.exp(-g_loop/(R*T))
+                    bp_prob[i,j] += bp 
             for k in range(i): #indexing outside bases
                 for l in range(j+1, N):
                     if k == i-1 and l == j+1:
@@ -297,6 +301,7 @@ def mccaskill_circular(g_base_pair, g_loop, g_stack, N):
                         interior_loop_type = 'l'
                     if Q_bound[k,l]:
                         bp_prob[i,j] += bp_prob[k,l] * Q_bound[i,j] * Q_interior(g_base_pair[k,l], g_loop, g_stack, interior_loop_type) / Q_bound[k,l]
+    #print Q[0][N-1]
     return bp_prob
 
 
@@ -358,14 +363,17 @@ def flag_circular(base1, base2, g_base_pair, g_loop, g_stack, N):
                                             dependent = True
                                         else:
                                             dependent = False
-                                        g_partial = Qb[d][N-1][k][0] * Qb[0][d-1][w][0]
-                                        if (g_partial - g_loop/(R*T)) in Q[i][j]:
-                                            Q[i][j].remove(g_partial - g_loop/(R*T)) # removing single instance; acting as subtracting a term
-                                            Q[i][j].append(g_partial - g_stack/(R*T))
+                                        Q_partial = Qb[d][N-1][k][0] * Qb[0][d-1][w][0]
+                                        Q_full = Q_partial * (np.exp(-g_stack/(R*T)) - np.exp(-g_loop/(R*T)))
+                                        Q[i][j].append((Q_full, dependent))
                             else: # to account for interior loop forming when chain is closed
                                 for k in range(len(Q[i][d-1])):
                                     for m in range(len(Qb[d][e])):
-                                        Q[i][j].append(Q[i][d-1][k] + Qb[d][e][m] - g_loop/(R*T))
+                                        if Q[i][d-1][k][1] or Qb[d][e][m][1]:
+                                            dependent = True
+                                        else:
+                                            dependent = False
+                                        Q[i][j].append((Q[i][d-1][k][0] * Qb[d][e][m][0] * np.exp(-g_loop/(R*T)), dependent))
             else:
                 for d in range(i,j-3): # iterating over all possible rightmost pairs
                     for e in range(d+4,j+1):
@@ -374,9 +382,134 @@ def flag_circular(base1, base2, g_base_pair, g_loop, g_stack, N):
                         else:
                             for k in range(len(Q[i][d-1])):
                                 for m in range(len(Qb[d][e])):
-                                    Q[i][j].append(Q[i][d-1][k] + Qb[d][e][m])
-    return sm.logsumexp(Q[0][N-1])
+                                    if Q[i][d-1][k][1] or Qb[d][e][m][1]:
+                                        dependent = True
+                                    else:
+                                        dependent = False
+                                    Q[i][j].append((Q[i][d-1][k][0] * Qb[d][e][m][0], dependent))
+    part = 0.
+    struct = 0.
+    for f in Q[0][N-1]:
+        part += f[0]
+        if f[1]:
+            struct += f[0]
+    #print struct/part
+    return struct/part
 
+
+def flag_circular_derivatives(base1, base2, g_base_pair, g_loop, g_stack, N, g):
+    # initializing general partition matrix
+    Q = [[[(1., False)] for i in range(N)] for i in range(N)] # stores a,b,c, etc in exp(a) + exp(b) + ...
+    
+    # initializing bound partition matrix
+    Qb = [[[] for i in range(N)] for i in range(N)]
+    
+    # stores the derivatives
+    dQ = [[[(0., False)] for i in range(N)] for i in range(N)] # stores derivative of corresponding term ^
+    dQb = [[[] for i in range(N)] for i in range(N)]
+
+    # calculation of partition function
+    for l in range(1,N+1): # iterating over all subsequence lengths
+        for i in range(0,N-l+1): # iterating over all starting positions for subsequences
+            j = i + l - 1 # ending position for subsequence
+            # Qb recursion
+            if j - i > 3 and (i + N) - j > 3 and g_base_pair[i,j]: # checking that base pair can form and bases are at least 4 positions apart on both sides
+                if i == base1 and j == base2:
+                    dependent = True
+                else:
+                    dependent = False
+                Qb[i][j].append((Q_hairpin(g_base_pair[i,j], g_loop), dependent))
+                if g == g_base_pair[i,j]:
+                    dQb[i][j].append(((Q_hairpin(g_base_pair[i,j] + h, g_loop) - Q_hairpin(g_base_pair[i,j], g_loop))/h, dependent))
+                else:
+                    dQb[i][j].append((0., dependent))
+            for d in range(i+1,j-4): # iterate over all possible rightmost pairs
+                for e in range(d+4,j): # i < d < e < j and d,e must be at least 4 positions apart
+                    interior_loop_type = ''
+                    if j - i > 3 and (i + N) - j > 3 and (d + N) - e > 3: #checking that the bases in each base pair are at least 4 positions apart
+                        if g_base_pair[i,j] and g_base_pair[d,e]: # interior loop possible
+                            if i+1 == d and e+1 == j: #stacked
+                                interior_loop_type = 's' #g_interior = g_base_pair[i,j] + g_stack
+                            else: #loop
+                                interior_loop_type = 'l' #g_interior = g_base_pair[i,j] + g_loop
+                            for k in range(len(Qb[d][e])):
+                                if Qb[d][e][k][1] or (i == base1 and j == base2):
+                                    dependent = True
+                                else:
+                                    dependent = False
+                                Qb[i][j].append(((Qb[d][e][k][0] * Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type)), dependent))
+                                dQ_int = 0.
+                                if g == g_base_pair[i,j]:
+                                    dQ_int = (Q_interior(g_base_pair[i,j] + h, g_loop, g_stack, interior_loop_type) - Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type))/h
+                                elif g == g_stack:
+                                    dQ_int = (Q_interior(g_base_pair[i,j], g_loop, g_stack + h, interior_loop_type) - Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type))/h
+                                dQb[i][j].append(((dQ_int * Qb[d][e][k][0] + Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type) * dQb[d][e][k][0]), dependent))
+            # Q recursion
+            if i == 0 and j == N-1: # closing chain
+                for d in range(0, N-4):
+                    for e in range(d+4,N):
+                        if d == 0:
+                            for k in range(len(Qb[d][e])):
+                                if Qb[d][e][k][1]:
+                                    dependent = True
+                                else:
+                                    dependent = False
+                                Q[i][j].append(((Qb[d][e][k][0] * np.exp(-g_loop/(R*T))), dependent))
+                                dQ[i][j].append((dQb[d][e][k][0] * np.exp(-g_loop/(R*T)), dependent))
+                        else:
+                            if e == N-1 and len(Qb[0][d-1]) and len(Qb[d][N-1]): # to account for stacked pair forming when chain is closed
+                                for k in range(len(Qb[d][N-1])):
+                                    for m in range(len(Q[0][d-1])):
+                                        if Qb[d][N-1][k][1] or Q[0][d-1][m][1]:
+                                            dependent = True
+                                        else:
+                                            dependent = False
+                                        Q[i][j].append(((Qb[d][N-1][k][0] * Q[0][d-1][m][0] * np.exp(-g_loop/(R*T))), dependent))
+                                        dQ[i][j].append(((dQb[d][N-1][k][0] * Q[0][d-1][m][0] + Qb[d][N-1][k][0] * dQ[0][d-1][m][0]) * np.exp(-g_loop/(R*T)), dependent))
+                                    for w in range(len(Qb[0][d-1])):
+                                        if Qb[d][N-1][k][1] or Qb[0][d-1][w][1]:
+                                            dependent = True
+                                        else:
+                                            dependent = False
+                                        Q_partial = Qb[d][N-1][k][0] * Qb[0][d-1][w][0]
+                                        Q_full = Q_partial * (np.exp(-g_stack/(R*T)) - np.exp(-g_loop/(R*T)))
+                                        Q[i][j].append((Q_full, dependent))
+                                        #derivative:
+                                        dQ_partial = dQb[d][N-1][k][0] * Qb[0][d-1][w][0] + Qb[d][N-1][k][0] * dQb[0][d-1][w][0]
+                                        dQ_full = dQ_partial * (np.exp(-g_stack/(R*T)) - np.exp(-g_loop/(R*T)))
+                                        if g == g_stack:
+                                            dQ_full += Q_partial * np.exp(-g_stack/(R*T))/(-R*T)
+                                        dQ[i][j].append((dQ_full, dependent))
+                            else: # to account for interior loop forming when chain is closed
+                                for k in range(len(Q[i][d-1])):
+                                    for m in range(len(Qb[d][e])):
+                                        if Q[i][d-1][k][1] or Qb[d][e][m][1]:
+                                            dependent = True
+                                        else:
+                                            dependent = False
+                                        Q[i][j].append((Q[i][d-1][k][0] * Qb[d][e][m][0] * np.exp(-g_loop/(R*T)), dependent))
+                                        dQ[i][j].append(((dQ[i][d-1][k][0] * Qb[d][e][m][0] * Q[i][d-1][k][0] * dQb[d][e][m][0]) * np.exp(-g_loop/(R*T)), dependent))
+            else:
+                for d in range(i,j-3): # iterating over all possible rightmost pairs
+                    for e in range(d+4,j+1):
+                        if d == 0: # to deal with issue of wrapping around in the last iteration
+                            Q[i][j] += Qb[d][e]
+                        else:
+                            for k in range(len(Q[i][d-1])):
+                                for m in range(len(Qb[d][e])):
+                                    if Q[i][d-1][k][1] or Qb[d][e][m][1]:
+                                        dependent = True
+                                    else:
+                                        dependent = False
+                                    Q[i][j].append((Q[i][d-1][k][0] * Qb[d][e][m][0], dependent))
+    part = 0.
+    struct = 0.
+    for f in Q[0][N-1]:
+        part += f[0]
+        if f[1]:
+            struct += f[0]
+    #print struct/part
+    return struct/part
 
 def circular_derivatives(g_base_pair, g_loop, g_stack, N, g):
     Q = np.zeros((N,N))
