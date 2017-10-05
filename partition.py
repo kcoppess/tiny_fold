@@ -90,8 +90,6 @@ def linear_derivatives(g_base_pair, g_loop, g_stack, N, g): # g : parameter that
                 Qb[i,j] = Q_hairpin(g_base_pair[i,j], g_loop)
                 if g == g_base_pair[i,j]:  # differentiating wrt current base pair parameter
                     dQb[i,j] = (Q_hairpin(g_base_pair[i,j] + h, g_loop) - Q_hairpin(g_base_pair[i,j], g_loop))/h
-                #elif g == g_loop: # differentiating wrt loop parameter
-                #    dQb[i,j] = (Q_hairpin(g_base_pair[i,j], g_loop + h) - Q_hairpin(g_base_pair[i,j], g_loop))/h
             else: # no hairpin possible
                 Qb[i,j] = 0.0
                 dQb[i,j] = 0.0
@@ -107,8 +105,6 @@ def linear_derivatives(g_base_pair, g_loop, g_stack, N, g): # g : parameter that
                         dQ_int = 0.0 # derivative of Q_interior
                         if g == g_base_pair[i,j]:
                             dQ_int = (Q_interior(g_base_pair[i,j] + h, g_loop, g_stack, interior_loop_type) - Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type))/h
-                        #elif g == g_loop and interior_loop_type == 'l':
-                        #    dQ_int = (Q_interior(g_base_pair[i,j], g_loop + h, g_stack, interior_loop_type) - Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type))/h
                         elif g == g_stack and interior_loop_type == 's':
                             dQ_int = (Q_interior(g_base_pair[i,j], g_loop, g_stack + h, interior_loop_type) - Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type))/h
                         dQb[i,j] += dQ_int * Qb[d,e] + Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type) * dQb[d,e]
@@ -192,8 +188,6 @@ def circular_derivatives(g_base_pair, g_loop, g_stack, N, g):
                 Qb[i,j] = Q_hairpin(g_base_pair[i,j], g_loop)
                 if g == g_base_pair[i,j]:
                     dQb[i,j] = (Q_hairpin(g_base_pair[i,j] + h, g_loop) - Q_hairpin(g_base_pair[i,j], g_loop))/h
-                elif g == g_loop:
-                    dQb[i,j] = (Q_hairpin(g_base_pair[i,j], g_loop + h) - Q_hairpin(g_base_pair[i,j], g_loop))/h
             else:  # hairpin not possible
                 Qb[i,j] = 0.0
             for d in range(i+1,j-4):
@@ -209,8 +203,6 @@ def circular_derivatives(g_base_pair, g_loop, g_stack, N, g):
                             dQ_int = 0.0
                             if g == g_base_pair[i,j]:
                                 dQ_int = (Q_interior(g_base_pair[i,j] + h, g_loop, g_stack, interior_loop_type) - Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type))/h
-                            elif g == g_loop and interior_loop_type == 'l':
-                                dQ_int = (Q_interior(g_base_pair[i,j], g_loop + h, g_stack, interior_loop_type) - Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type))/h
                             elif g == g_stack and interior_loop_type == 's':
                                 dQ_int = (Q_interior(g_base_pair[i,j], g_loop, g_stack + h, interior_loop_type) - Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type))/h
                             dQb[i,j] += dQ_int * Qb[d,e] + Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type) * dQb[d,e]
@@ -231,10 +223,7 @@ def circular_derivatives(g_base_pair, g_loop, g_stack, N, g):
                         else:
                             if e == N-1 and Qb[0,d-1] and Qb[d,N-1]: # to account for stacked pair forming when chain is closed
                                 Q[i,j] += (Q[0,d-1] + Qb[0,d-1]*(np.exp(-(g_stack-g_loop)/(R*T)) - 1))*Qb[d,N-1]*np.exp(-g_loop/(R*T))
-                                if g == g_loop:
-                                    dQ[i,j] += (dQ[0,d-1] + dQb[0,d-1]*(np.exp(-(g_stack-g_loop)/(R*T)) -1) + Qb[0,d-1]*(np.exp(-(g_stack-g_loop)/(R*T))/(R*T)))*Qb[d,N-1]*np.exp(-g_loop/(R*T))
-                                    dQ[i,j] += (Q[0,d-1] + Qb[0,d-1]*(np.exp(-(g_stack-g_loop)/(R*T)) - 1))*(dQb[d,N-1]*np.exp(-g_loop/(R*T)) - Qb[d,N-1]*np.exp(-g_loop/(R*T))/(R*T))
-                                elif g == g_stack:
+                                if g == g_stack:
                                     dQ[i,j] += (dQ[0,d-1] + dQb[0,d-1]*(np.exp(-(g_stack-g_loop)/(R*T)) -1) + Qb[0,d-1]*(-np.exp(-(g_stack-g_loop)/(R*T))/(R*T)))*Qb[d,N-1]*np.exp(-g_loop/(R*T))
                                     dQ[i,j] += (Q[0,d-1] + Qb[0,d-1]*(np.exp(-(g_stack-g_loop)/(R*T)) - 1))*dQb[d,N-1]*np.exp(-g_loop/(R*T))
                                 else:
@@ -242,10 +231,7 @@ def circular_derivatives(g_base_pair, g_loop, g_stack, N, g):
                                     dQ[i,j] += (Q[0,d-1] + Qb[0,d-1]*(np.exp(-(g_stack-g_loop)/(R*T)) - 1))*dQb[d,N-1]*np.exp(-g_loop/(R*T))
                             else: # to account for interior loop forming when chain is closed
                                 Q[i,j] += Q[i,d-1]*Qb[d,e]*np.exp(-g_loop/(R*T))
-                                if g == g_loop:
-                                    dQ[i,j] += dQ[i,d-1]*Qb[d,e]*np.exp(-g_loop/(R*T)) + Q[i,d-1]*dQb[d,e]*np.exp(-g_loop/(R*T)) - Q[i,d-1]*Qb[d,e]*np.exp(-g_loop/(R*T))/(R*T)
-                                else:
-                                    dQ[i,j] += dQ[i,d-1]*Qb[d,e]*np.exp(-g_loop/(R*T)) + Q[i,d-1]*dQb[d,e]*np.exp(-g_loop/(R*T))
+                                dQ[i,j] += dQ[i,d-1]*Qb[d,e]*np.exp(-g_loop/(R*T)) + Q[i,d-1]*dQb[d,e]*np.exp(-g_loop/(R*T))
             else:
                 for d in range(i,j-3):
                     for e in range(d+4,j+1):
