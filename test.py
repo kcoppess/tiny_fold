@@ -5,13 +5,14 @@ import partition as z
 import matplotlib.pyplot as plt
 import scipy.optimize as so
 import g_matrix as gm
+import time
 
 def func(param, sequence, b1, b2):
     N = len(sequence)
 
     is_circular = False
     if sequence[-1] == '-':
-        is_circular = True
+        is_circular = False # FIXME
         N = N - 1 # ignoring the '-' part of sequence
 
 
@@ -45,7 +46,7 @@ bpp_flag = []
 
 num = 0
 
-for sequence in p.training_sequences[5:]:
+for sequence in p.training_sequences:
     #if num > 0:
     #    break
 
@@ -53,7 +54,7 @@ for sequence in p.training_sequences[5:]:
 
     is_circular = False
     if sequence[-1] == '-':
-        is_circular = True
+        is_circular = False # FIXME
         M = M - 1
 
     g_base_pair = gm.generator(sequence, 5.69, 6., 4.09, M)
@@ -61,20 +62,41 @@ for sequence in p.training_sequences[5:]:
     num += 1
     #print '-----------------------------------------------------------------------------'
     print sequence
+    
+    numerical_time = []
+    mccaskill_time = []
+
     for i in range(M):
         for j in range(i+1, M):
             #print i, j
-            bpp_mccaskill.append(func([5.69, 6., 4.09, -7.09], sequence, i, j))
-            #grad = so.approx_fprime([5.69, 6., 4.09, -7.09], func, 1e-9, sequence, i, j)
-            #bpp1_au.append(grad[0])
-            #bpp1_gu.append(grad[1])
-            #bpp1_gc.append(grad[2])
-            #bpp1_stack.append(grad[3])
+            #bpp_mccaskill.append(func([5.69, 6., 4.09, -7.09], sequence, i, j))
+            start = time.clock()
+            grad = so.approx_fprime([5.69, 6., 4.09, -7.09], func, 1e-9, sequence, i, j)
+            bpp1_au.append(grad[0])
+            bpp1_gu.append(grad[1])
+            bpp1_gc.append(grad[2])
+            bpp1_stack.append(grad[3])
+            end = time.clock()
+            numerical_time.append(end-start)
             if is_circular:
-                f = bpp.flag_circular(i, j, g_base_pair, 1., -7.09, M)
+                start = time.clock()
+                #f = bpp.flag_circular(i, j, g_base_pair, 1., -7.09, M)
+                bpp_flag_au.append(bpp.flag_circular_derivatives(i, j, g_base_pair, 1., -7.09, M, 5.69))
+                bpp_flag_gu.append(bpp.flag_circular_derivatives(i, j, g_base_pair, 1., -7.09, M, 6.))
+                bpp_flag_gc.append(bpp.flag_circular_derivatives(i, j, g_base_pair, 1., -7.09, M, 4.09))
+                bpp_flag_stack.append(bpp.flag_circular_derivatives(i, j, g_base_pair, 1., -7.09, M, -7.09))
+                end = time.clock()
+                #print end-start
             else:
-                f = bpp.flag_linear(i, j, g_base_pair, 1., -7.09, M)
-            bpp_flag.append(f)
+                start = time.clock()
+                #f = bpp.flag_linear(i, j, g_base_pair, 1., -7.09, M)
+                bpp_flag_au.append(bpp.mccaskill_linear_derivatives(g_base_pair, 1., -7.09, M, 5.69)[i,j])
+                end = time.clock()
+                bpp_flag_gu.append(bpp.mccaskill_linear_derivatives(g_base_pair, 1., -7.09, M, 6.)[i,j])
+                bpp_flag_gc.append(bpp.mccaskill_linear_derivatives(g_base_pair, 1., -7.09, M, 4.09)[i,j])
+                bpp_flag_stack.append(bpp.mccaskill_linear_derivatives(g_base_pair, 1., -7.09, M, -7.09)[i,j])
+                mccaskill_time.append(end-start)
+            #bpp_flag.append(f)
             #bpp_flag.append(bpp.flag_circular(i, j, g_base_pair, 1., -7.09, M))
             #print f
             #print '.......'
@@ -83,20 +105,25 @@ for sequence in p.training_sequences[5:]:
             #bpp_flag_gc.append(bpp.flag_linear_derivatives(i, j, g_base_pair, 1., -7.09, M, 4.09))
             #bpp_flag_stack.append(bpp.flag_linear_derivatives(i, j, g_base_pair, 1., -7.09, M, -7.09))
             #y = bpp.flag_linear_derivatives(1, 7, g_base_pair, g_loop, g_stack, N, 4.09)
-#x = np.linspace(min([min(bpp1_au), min(bpp1_gu),min(bpp1_gc),min(bpp1_stack)])-.5, max([max(bpp1_au), max(bpp1_gu),max(bpp1_gc),max(bpp1_stack)]) +.5, 100)
-print np.linalg.norm(np.array(bpp_mccaskill) - np.array(bpp_flag))/np.sqrt(len(bpp_mccaskill))
-x = np.linspace(min(bpp_mccaskill)-.5, max(bpp_flag)+.5, 100)
+    #print 'numerical'+str(np.mean(np.array(numerical_time)))
+    #print 'McCaskill'+str(np.mean(np.array(mccaskill_time)))
+x = np.linspace(min([min(bpp1_au), min(bpp1_gu),min(bpp1_gc),min(bpp1_stack)])-.5, max([max(bpp1_au), max(bpp1_gu),max(bpp1_gc),max(bpp1_stack)]) +.5, 100)
+print np.linalg.norm(np.array(bpp1_au + bpp1_gu + bpp1_gc + bpp1_stack) - np.array(bpp_flag_au + bpp_flag_gu + bpp_flag_gc + bpp_flag_stack))/np.sqrt(len(bpp1_au + bpp1_gu + bpp1_gc + bpp1_stack))
+#print np.linalg.norm(np.array(bpp_mccaskill) - np.array(bpp_flag))/np.sqrt(len(bpp_mccaskill))
+#x = np.linspace(min(bpp_mccaskill)-.5, max(bpp_flag)+.5, 100)
 
-plt.scatter(bpp_mccaskill, bpp_flag)
-#plt.scatter(bpp1_au, bpp_flag_au, color='blue', label='$g_{AU}$')
-#plt.scatter(bpp1_gu, bpp_flag_gu, color='red', label='$g_{GU}$')
-#plt.scatter(bpp1_gc, bpp_flag_gc, color='green', label='$g_{GC}$')
-#plt.scatter(bpp1_stack, bpp_flag_stack, color='magenta', label='$g_{stack}$')
-#plt.legend()
+#plt.scatter(bpp_mccaskill, bpp_flag)
+plt.scatter(bpp1_au, bpp_flag_au, color='blue', label='$g_{AU}$')
+plt.scatter(bpp1_gu, bpp_flag_gu, color='red', label='$g_{GU}$')
+plt.scatter(bpp1_gc, bpp_flag_gc, color='green', label='$g_{GC}$')
+plt.scatter(bpp1_stack, bpp_flag_stack, color='magenta', label='$g_{stack}$')
+plt.legend()
 plt.plot(x, x, color='black')
 plt.xlim([min(x), max(x)])
 plt.ylim([min(x), max(x)])
-plt.xlabel('McCaskill')
-plt.ylabel('Boolean Flags')
-plt.title('Base Pair Probabilities Two Ways (Linear/Circular)')
+#plt.xlabel('McCaskill')
+plt.xlabel('Numerical')
+plt.ylabel('McCaskill')
+#plt.title('Base Pair Probabilities Two Ways (Linear/Circular)')
+plt.title('BPP Gradient (linear)')
 plt.show()

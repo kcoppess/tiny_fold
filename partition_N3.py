@@ -111,7 +111,7 @@ def linear_derivatives(g_base_pair, g_loop, g_stack, N, g): # g : parameter that
                         if g == g_base_pair[i,j]:
                             dQb[i,j] += Qb[d,e] * (Q_interior(g_base_pair[i,j] + h, g_loop, g_stack, interior_loop_type) - Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type)) / h
                         elif g == g_stack:
-                            dQb[i,j] += 0.#Qb[d,e] * (Q_interior(g_base_pair[i,j], g_loop, g_stack + h, interior_loop_type) - Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type)) / h
+                            dQb[i,j] += Qb[d,e] * (Q_interior(g_base_pair[i,j], g_loop, g_stack + h, interior_loop_type) - Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type)) / h
                     else: # no interior loop possible (one or both base pairs can't form)
                         Qb[i,j] += 0.0
             # Qs recursion

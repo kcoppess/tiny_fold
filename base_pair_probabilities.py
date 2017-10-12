@@ -35,6 +35,70 @@ def mccaskill_linear(g_base_pair, g_loop, g_stack, N):
         Q[m,m-1] = 1.0
     
     # initializing bound partition matrix
+    Qb = np.zeros((N,N))
+
+    Qs = np.zeros((N,N))
+    
+    # calculation of partition function
+    for l in range(1,N+1): # iterating over all subsequence lengths
+        for i in range(0,N-l+1): # iterating over all starting positions for subsequences
+            j = i + l - 1 # ending position for subsequence
+            # Qb recursion
+            if j-i > 3 and g_base_pair[i,j]: # if possible hairpin: at least 4 positions apart and able to form a base pair
+                Qb[i,j] = Q_hairpin(g_base_pair[i,j], g_loop)
+            else: # no hairpin possible
+                Qb[i,j] = 0.0
+            for d in range(i+1,j-4): # iterate over all possible rightmost pairs
+                for e in range(d+4,j): # i < d < e < j and d,e must be at least 4 positions apart
+                    interior_loop_type = ''
+                    if g_base_pair[i,j] and g_base_pair[d,e]: # possible for both base pairs to form
+                        if i+1 == d and e+1 == j: # if stacked
+                            interior_loop_type = 's'
+                        else: # if loop
+                            interior_loop_type = 'l'
+                        Qb[i,j] += Qb[d,e] * Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type)
+                    else: # no interior loop possible (one or both base pairs can't form)
+                        Qb[i,j] += 0.0
+            # Qs recursion
+            for d in range(i+4, j+1): # iterate over all rightmost pairs with base i (beginning of subsequence)
+                Qs[i,j] += Qb[i,d]
+            # Q recursion
+            Q[i,j] = 1.0
+            for d in range(i,j-3): # iterating over all possible rightmost pairs
+                if d == 0: # to deal with issue of wrapping around in the last iteration
+                    Q[i,j] += Qs[d,j]
+                else:
+                    Q[i,j] += Q[i,d-1]*Qs[d,j]
+    
+    # base pair probability
+    bp_prob = np.zeros((N,N))
+    # need to start with outside pairs and work way in
+    for i in range(N): # index for first base
+        for j in range(N-1, -1, -1): # index for second base
+            if i == 0 and j == N-1:
+                bp_prob[i,j] = Qb[0, N-1] / Q[0, N-1]
+            elif i == 0:
+                bp_prob[i,j] = Qb[0, j] * Q[j+1, N-1] / Q[0, N-1]
+            elif j == N-1:
+                bp_prob[i,j] = Q[0, i-1] * Qb[i, N-1] / Q[0, N-1]
+            else:
+                bp_prob[i,j] = Q[0, i-1] * Qb[i,j] * Q[j+1, N-1] / Q[0, N-1] # if base-pair is not enclosed
+                for k in range(i): #indexing outside bases
+                    for l in range(j+1, N):
+                        if k == i-1 and l == j+1:
+                            interior_loop_type = 's'
+                        else:
+                            interior_loop_type = 'l'
+                        if Qb[k,l]:
+                            bp_prob[i,j] += bp_prob[k,l] * Qb[i,j] * Q_interior(g_base_pair[k,l], g_loop, g_stack, interior_loop_type) / Qb[k,l]
+    return bp_prob
+''' N4 algorithm
+    # initializing general partition matrix
+    Q = np.zeros((N,N))
+    for m in range(N):
+        Q[m,m-1] = 1.0
+    
+    # initializing bound partition matrix
     Q_bound = np.zeros((N,N))
     
     # calculation of partition function
@@ -88,6 +152,7 @@ def mccaskill_linear(g_base_pair, g_loop, g_stack, N):
                         if Q_bound[k,l]:
                             bp_prob[i,j] += bp_prob[k,l] * Q_bound[i,j] * Q_interior(g_base_pair[k,l], g_loop, g_stack, interior_loop_type) / Q_bound[k,l]
     return bp_prob
+'''
 
 # required that base1 < base2
 # generates matrix of base-pair probabilities derivatives w.r.t. energy parameter g
