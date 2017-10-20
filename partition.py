@@ -11,7 +11,7 @@ h = p.h # differentiation step size
 
 R = p.R # kcal/K/mol universal gas constant
 T = p.T # K temperature (standard state - room temp)
-
+invRT = 1.0 / (R*T)
 
 # partition contribution from hairpin closed with base pair BP
 def Q_hairpin(g_BP, g_loop):
@@ -21,9 +21,9 @@ def Q_hairpin(g_BP, g_loop):
 # avoids double counting free energy from base pair formation
 def Q_interior(g_BP, g_loop, g_stack, loop_type):
     if loop_type == 's':  # if stacked base pair
-        return np.exp(-(g_BP + g_stack)/(R*T))
+        return np.exp(-(g_BP + g_stack)*invRT)
     elif loop_type == 'l':  # if loop
-        return np.exp(-(g_BP + g_loop)/(R*T))
+        return np.exp(-(g_BP + g_loop)*invRT)
     else:
         print str(loop_type)+": Invalid type of interior loop"
         return 0.0
@@ -56,7 +56,7 @@ def linear(g_base_pair, g_loop, g_stack, N):
                             interior_loop_type = 'l'
                         Qb[i,j] += Qb[d,e] * Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type)
                     else: # no interior loop possible (one or both base pairs can't form)
-                        Qb[i,j] += 0.0
+						pass #Qb[i,j] += 0.0
             # Q recursion
             Q[i,j] = 1.0
             for d in range(i,j-3): # iterating over all possible rightmost pairs
@@ -87,9 +87,10 @@ def linear_derivatives(g_base_pair, g_loop, g_stack, N, g): # g : parameter that
             j = i + l - 1 # ending position for subsequence
             # Qb recursion
             if j-i > 3 and g_base_pair[i,j]: # if possible hairpin: at least 4 positions apart and able to form a base pair
-                Qb[i,j] = Q_hairpin(g_base_pair[i,j], g_loop)
+                q_hairpin_ij = Q_hairpin(g_base_pair[i,j], g_loop)
+                Qb[i,j] = q_hairpin_ij
                 if g == g_base_pair[i,j]:  # differentiating wrt current base pair parameter
-                    dQb[i,j] = (Q_hairpin(g_base_pair[i,j] + h, g_loop) - Q_hairpin(g_base_pair[i,j], g_loop))/h
+                    dQb[i,j] = (Q_hairpin(g_base_pair[i,j] + h, g_loop) - q_hairpin_ij)/h
             else: # no hairpin possible
                 Qb[i,j] = 0.0
                 dQb[i,j] = 0.0
@@ -101,15 +102,16 @@ def linear_derivatives(g_base_pair, g_loop, g_stack, N, g): # g : parameter that
                             interior_loop_type = 's' #g_interior = g_base_pair[i,j] + g_stack # avoids double counting free energy from base pair formation
                         else: # if loop
                             interior_loop_type = 'l' #g_interior = g_base_pair[i,j] + g_loop
-                        Qb[i,j] += Qb[d,e] * Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type)
+                        q_int_ij = Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type)
+                        Qb[i,j] += Qb[d,e] * q_int_ij
                         dQ_int = 0.0 # derivative of Q_interior
                         if g == g_base_pair[i,j]:
-                            dQ_int = (Q_interior(g_base_pair[i,j] + h, g_loop, g_stack, interior_loop_type) - Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type))/h
+                            dQ_int = (Q_interior(g_base_pair[i,j] + h, g_loop, g_stack, interior_loop_type) - q_int_ij)/h
                         elif g == g_stack and interior_loop_type == 's':
-                            dQ_int = (Q_interior(g_base_pair[i,j], g_loop, g_stack + h, interior_loop_type) - Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type))/h
-                        dQb[i,j] += dQ_int * Qb[d,e] + Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type) * dQb[d,e]
+                            dQ_int = (Q_interior(g_base_pair[i,j], g_loop, g_stack + h, interior_loop_type) - q_int_ij)/h
+                        dQb[i,j] += dQ_int * Qb[d,e] + q_int_ij * dQb[d,e]
                     else: # no interior loop possible (one or both base pairs can't form)
-                        Qb[i,j] += 0.0
+						pass #Qb[i,j] += 0.0
             # Q recursion
             Q[i,j] = 1.0
             for d in range(i,j-3): # iterating over all possible rightmost pairs
@@ -129,6 +131,9 @@ def circular(g_base_pair, g_loop, g_stack, N):
 
     Qb = np.zeros((N,N))
 
+    exp_neg_gloop_over_RT = np.exp(-g_loop*invRT)
+    exp_neg_gstack_gloop_over_RT = np.exp(-(g_stack-g_loop)*invRT)
+
     for l in range(1, N+1): #length of subsequence
         for i in range(0, N-l+1): # start of subsequence
             j = i + l - 1
@@ -136,6 +141,7 @@ def circular(g_base_pair, g_loop, g_stack, N):
                 Qb[i,j] = Q_hairpin(g_base_pair[i,j], g_loop)
             else:  # hairpin not possible
                 Qb[i,j] = 0.0
+            
             for d in range(i+1,j-4):
                 for e in range(d+4,j):
                     interior_loop_type = ''
@@ -147,20 +153,20 @@ def circular(g_base_pair, g_loop, g_stack, N):
                                 interior_loop_type = 'l' #g_interior = g_base_pair[i,j] + g_loop
                             Qb[i,j] += Qb[d,e] * Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type)
                         else: # interior loop not possible
-                            Qb[i,j] += 0.0
+							pass #Qb[i,j] += 0.0
                     else:
-                        Qb[i,j] += 0.0
+						pass #Qb[i,j] += 0.0
             Q[i,j] = 1.0
             if i == 0 and j == N-1: # closing chain
                 for d in range(0, N-4):
                     for e in range(d+4,N):
                         if d == 0:
-                            Q[i,j] += Qb[0,e]*np.exp(-g_loop/(R*T))
+                            Q[i,j] += Qb[0,e]*exp_neg_gloop_over_RT
                         else:
                             if e == N-1 and Qb[0,d-1] and Qb[d,N-1]: # to account for stacked pair forming when chain is closed
-                                Q[i,j] += (Q[0,d-1] + Qb[0,d-1]*(np.exp(-(g_stack-g_loop)/(R*T)) - 1))*Qb[d,N-1]*np.exp(-g_loop/(R*T))
+                                Q[i,j] += (Q[0,d-1] + Qb[0,d-1]*(exp_neg_gstack_gloop_over_RT - 1))*Qb[d,N-1]*exp_neg_gloop_over_RT
                             else: # to account for interior loop forming when chain is closed
-                                Q[i,j] += Q[i,d-1]*Qb[d,e]*np.exp(-g_loop/(R*T))
+                                Q[i,j] += Q[i,d-1]*Qb[d,e]*exp_neg_gloop_over_RT
             else:
                 for d in range(i,j-3):
                     for e in range(d+4,j+1):
@@ -185,11 +191,12 @@ def circular_derivatives(g_base_pair, g_loop, g_stack, N, g):
         for i in range(0, N-l+1): # start of subsequence
             j = i + l - 1
             if j - i > 3 and (i + N) - j > 3 and g_base_pair[i,j]: # checking that base pair can form and bases are at least 4 positions apart on both sides
-                Qb[i,j] = Q_hairpin(g_base_pair[i,j], g_loop)
+                q_hairpin_ij = Q_hairpin(g_base_pair[i,j], g_loop)
+                Qb[i,j] = q_hairpin_ij
                 if g == g_base_pair[i,j]:
-                    dQb[i,j] = (Q_hairpin(g_base_pair[i,j] + h, g_loop) - Q_hairpin(g_base_pair[i,j], g_loop))/h
+                    dQb[i,j] = (Q_hairpin(g_base_pair[i,j] + h, g_loop) - q_hairpin_ij)/h
             else:  # hairpin not possible
-                Qb[i,j] = 0.0
+				Qb[i,j] = 0.0
             for d in range(i+1,j-4):
                 for e in range(d+4,j):
                     interior_loop_type = ''
@@ -199,39 +206,42 @@ def circular_derivatives(g_base_pair, g_loop, g_stack, N, g):
                                 interior_loop_type = 's' #g_interior = g_base_pair[i,j] + g_stack
                             else: #loop
                                 interior_loop_type = 'l' #g_interior = g_base_pair[i,j] + g_loop
-                            Qb[i,j] += Qb[d,e] * Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type)
+                            q_int_ij = Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type)
+                            Qb[i,j] += Qb[d,e] * q_int_ij
                             dQ_int = 0.0
                             if g == g_base_pair[i,j]:
-                                dQ_int = (Q_interior(g_base_pair[i,j] + h, g_loop, g_stack, interior_loop_type) - Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type))/h
+                                dQ_int = (Q_interior(g_base_pair[i,j] + h, g_loop, g_stack, interior_loop_type) - q_int_ij)/h
                             elif g == g_stack and interior_loop_type == 's':
-                                dQ_int = (Q_interior(g_base_pair[i,j], g_loop, g_stack + h, interior_loop_type) - Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type))/h
-                            dQb[i,j] += dQ_int * Qb[d,e] + Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type) * dQb[d,e]
+                                dQ_int = (Q_interior(g_base_pair[i,j], g_loop, g_stack + h, interior_loop_type) - q_int_ij)/h
+                            dQb[i,j] += dQ_int * Qb[d,e] + q_int_ij * dQb[d,e]
                         else: # interior loop not possible
-                            Qb[i,j] += 0.0
+							pass #Qb[i,j] += 0.0
                     else:
-                        Qb[i,j] += 0.0
+						pass #Qb[i,j] += 0.0
             Q[i,j] = 1.0
             if i == 0 and j == N-1: # closing chain
                 for d in range(0, N-4):
                     for e in range(d+4,N):
+                        exp_neg_gloop_over_RT = np.exp(-g_loop*invRT)
                         if d == 0:
-                            Q[i,j] += Qb[0,e]*np.exp(-g_loop/(R*T))
+                            Q[i,j] += Qb[0,e]* exp_neg_gloop_over_RT
                             if g == g_loop:
-                                dQ[i,j] += dQb[0,e] * np.exp(-g_loop/(R*T)) - Qb[0,e] * np.exp(-g_loop/(R*T))/(R*T)
+                                dQ[i,j] += dQb[0,e] * exp_neg_gloop_over_RT - Qb[0,e] * exp_neg_gloop_over_RT*invRT
                             else:
-                                dQ[i,j] += dQb[0,e] * np.exp(-g_loop/(R*T))
+                                dQ[i,j] += dQb[0,e] * exp_neg_gloop_over_RT
                         else:
                             if e == N-1 and Qb[0,d-1] and Qb[d,N-1]: # to account for stacked pair forming when chain is closed
-                                Q[i,j] += (Q[0,d-1] + Qb[0,d-1]*(np.exp(-(g_stack-g_loop)/(R*T)) - 1))*Qb[d,N-1]*np.exp(-g_loop/(R*T))
+                                exp_neg_gstack_gloop_over_RT = np.exp(-(g_stack-g_loop)*invRT)
+                                Q[i,j] += (Q[0,d-1] + Qb[0,d-1]*(exp_neg_gstack_gloop_over_RT - 1))*Qb[d,N-1]*exp_neg_gloop_over_RT
                                 if g == g_stack:
-                                    dQ[i,j] += (dQ[0,d-1] + dQb[0,d-1]*(np.exp(-(g_stack-g_loop)/(R*T)) -1) + Qb[0,d-1]*(-np.exp(-(g_stack-g_loop)/(R*T))/(R*T)))*Qb[d,N-1]*np.exp(-g_loop/(R*T))
-                                    dQ[i,j] += (Q[0,d-1] + Qb[0,d-1]*(np.exp(-(g_stack-g_loop)/(R*T)) - 1))*dQb[d,N-1]*np.exp(-g_loop/(R*T))
+                                    dQ[i,j] += (dQ[0,d-1] + dQb[0,d-1]*(np.exp(-(g_stack-g_loop)/(R*T)) -1) + Qb[0,d-1]*(-exp_neg_gstack_gloop_over_RT)*Qb[d,N-1]*exp_neg_gloop_over_RT)
+                                    dQ[i,j] += (Q[0,d-1] + Qb[0,d-1]*(exp_neg_gstack_gloop_over_RT - 1))*dQb[d,N-1]*exp_neg_gloop_over_RT
                                 else:
-                                    dQ[i,j] += (dQ[0,d-1] + dQb[0,d-1]*(np.exp(-(g_stack-g_loop)/(R*T)) -1))*Qb[d,N-1]*np.exp(-g_loop/(R*T))
-                                    dQ[i,j] += (Q[0,d-1] + Qb[0,d-1]*(np.exp(-(g_stack-g_loop)/(R*T)) - 1))*dQb[d,N-1]*np.exp(-g_loop/(R*T))
+                                    dQ[i,j] += (dQ[0,d-1] + dQb[0,d-1]*(exp_neg_gstack_gloop_over_RT -1))*Qb[d,N-1]*exp_neg_gloop_over_RT
+                                    dQ[i,j] += (Q[0,d-1] + Qb[0,d-1]*(exp_neg_gstack_gloop_over_RT - 1))*dQb[d,N-1]*exp_neg_gloop_over_RT
                             else: # to account for interior loop forming when chain is closed
-                                Q[i,j] += Q[i,d-1]*Qb[d,e]*np.exp(-g_loop/(R*T))
-                                dQ[i,j] += dQ[i,d-1]*Qb[d,e]*np.exp(-g_loop/(R*T)) + Q[i,d-1]*dQb[d,e]*np.exp(-g_loop/(R*T))
+                                Q[i,j] += Q[i,d-1]*Qb[d,e]*exp_neg_gloop_over_RT
+                                dQ[i,j] += dQ[i,d-1]*Qb[d,e]*exp_neg_gloop_over_RT + Q[i,d-1]*dQb[d,e]*exp_neg_gloop_over_RT
             else:
                 for d in range(i,j-3):
                     for e in range(d+4,j+1):

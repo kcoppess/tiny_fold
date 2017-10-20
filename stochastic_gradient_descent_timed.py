@@ -6,6 +6,9 @@ import log_partition as log_z
 import parameters as p
 import random
 import g_matrix as gm
+import sys
+
+import cProfile 
 
 # returns gradient of residual squared for particular point
 # NOTE new cost function: sum( (Qi - Q(xi,B))^2 ) + alpha*B^2
@@ -59,7 +62,10 @@ def main():
     K = []
     iteration_param = [] # list of updated parameters after each iteration
 
-    while not convergence(param, prev_param) and k < 10000:
+    #while not convergence(param, prev_param) and k < 10000:
+    
+    #Fixed k =>10
+    while k <= 10:
         random.shuffle(index) # randomly shuffling indexes for each pass through the data
         if k % 100 == 0:
             print "Gradient " + str(grad)
@@ -85,8 +91,9 @@ def main():
         k += 1
     print param
 
+profile = cProfile.Profile()
+profile.enable()
 main()
-
-#cProfile.run('main()')
-
+profile.disable()
+profile.dump_stats("%s.statout" % sys.argv[1])
 
