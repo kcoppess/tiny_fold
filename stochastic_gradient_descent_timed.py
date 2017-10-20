@@ -6,6 +6,7 @@ import log_partition as log_z
 import parameters as p
 import random
 import g_matrix as gm
+import sys
 
 import cProfile 
 
@@ -94,5 +95,5 @@ profile = cProfile.Profile()
 profile.enable()
 main()
 profile.disable()
-profile.dump_stats("foo.txt")
+profile.dump_stats("%s.statout" % sys.argv[1])
 
