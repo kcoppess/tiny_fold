@@ -241,6 +241,8 @@ def circular_derivatives(g_base_pair, g_loop, g_stack, N, g):
 
     Qb = np.zeros((N,N))
     dQb = np.zeros((N,N))
+       
+    exp_neg_gstack_gloop_over_RT = np.exp(-(g_stack-g_loop)*invRT)
 
     for l in range(1, N+1): #length of subsequence
         for i in range(0, N-l+1): # start of subsequence
@@ -286,10 +288,9 @@ def circular_derivatives(g_base_pair, g_loop, g_stack, N, g):
                                 dQ[i,j] += dQb[0,e] * exp_neg_gloop_over_RT
                         else:
                             if e == N-1 and Qb[0,d-1] and Qb[d,N-1]: # to account for stacked pair forming when chain is closed
-                                exp_neg_gstack_gloop_over_RT = np.exp(-(g_stack-g_loop)*invRT)
                                 Q[i,j] += (Q[0,d-1] + Qb[0,d-1]*(exp_neg_gstack_gloop_over_RT - 1))*Qb[d,N-1]*exp_neg_gloop_over_RT
                                 if g == g_stack:
-                                    dQ[i,j] += (dQ[0,d-1] + dQb[0,d-1]*(np.exp(-(g_stack-g_loop)/(R*T)) -1) + Qb[0,d-1]*(-exp_neg_gstack_gloop_over_RT)*Qb[d,N-1]*exp_neg_gloop_over_RT)
+                                    dQ[i,j] += (dQ[0,d-1] + dQb[0,d-1]*(exp_neg_gstack_gloop_over_RT -1) + Qb[0,d-1]*(-exp_neg_gstack_gloop_over_RT)*Qb[d,N-1]*exp_neg_gloop_over_RT)
                                     dQ[i,j] += (Q[0,d-1] + Qb[0,d-1]*(exp_neg_gstack_gloop_over_RT - 1))*dQb[d,N-1]*exp_neg_gloop_over_RT
                                 else:
                                     dQ[i,j] += (dQ[0,d-1] + dQb[0,d-1]*(exp_neg_gstack_gloop_over_RT -1))*Qb[d,N-1]*exp_neg_gloop_over_RT
@@ -317,6 +318,8 @@ def circular_derivatives_over_val(g_base_pair, g_loop, g_stack, N, g):
 
     Qb = np.zeros((N,N))
     dQb = np.zeros((N,N))
+
+    exp_neg_gstack_gloop_over_RT = np.exp(-(g_stack-g_loop)*invRT)
 
     for l in range(1, N+1): #length of subsequence
         for i in range(0, N-l+1): # start of subsequence
@@ -362,10 +365,9 @@ def circular_derivatives_over_val(g_base_pair, g_loop, g_stack, N, g):
                                 dQ[i,j] += dQb[0,e] * exp_neg_gloop_over_RT
                         else:
                             if e == N-1 and Qb[0,d-1] and Qb[d,N-1]: # to account for stacked pair forming when chain is closed
-                                exp_neg_gstack_gloop_over_RT = np.exp(-(g_stack-g_loop)*invRT)
                                 Q[i,j] += (Q[0,d-1] + Qb[0,d-1]*(exp_neg_gstack_gloop_over_RT - 1))*Qb[d,N-1]*exp_neg_gloop_over_RT
                                 if g == g_stack:
-                                    dQ[i,j] += (dQ[0,d-1] + dQb[0,d-1]*(np.exp(-(g_stack-g_loop)/(R*T)) -1) + Qb[0,d-1]*(-exp_neg_gstack_gloop_over_RT)*Qb[d,N-1]*exp_neg_gloop_over_RT)
+                                    dQ[i,j] += (dQ[0,d-1] + dQb[0,d-1]*(exp_neg_gstack_gloop_over_RT -1) + Qb[0,d-1]*(-exp_neg_gstack_gloop_over_RT)*Qb[d,N-1]*exp_neg_gloop_over_RT)
                                     dQ[i,j] += (Q[0,d-1] + Qb[0,d-1]*(exp_neg_gstack_gloop_over_RT - 1))*dQb[d,N-1]*exp_neg_gloop_over_RT
                                 else:
                                     dQ[i,j] += (dQ[0,d-1] + dQb[0,d-1]*(exp_neg_gstack_gloop_over_RT -1))*Qb[d,N-1]*exp_neg_gloop_over_RT
