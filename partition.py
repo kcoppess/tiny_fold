@@ -56,7 +56,7 @@ def linear(g_base_pair, g_loop, g_stack, N):
                             interior_loop_type = 'l'
                         Qb[i,j] += Qb[d,e] * Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type)
                     else: # no interior loop possible (one or both base pairs can't form)
-						pass #Qb[i,j] += 0.0
+						pass
             # Q recursion
             Q[i,j] = 1.0
             for d in range(i,j-3): # iterating over all possible rightmost pairs
@@ -111,7 +111,7 @@ def linear_derivatives(g_base_pair, g_loop, g_stack, N, g): # g : parameter that
                             dQ_int = (Q_interior(g_base_pair[i,j], g_loop, g_stack + h, interior_loop_type) - q_int_ij)/h
                         dQb[i,j] += dQ_int * Qb[d,e] + q_int_ij * dQb[d,e]
                     else: # no interior loop possible (one or both base pairs can't form)
-						pass #Qb[i,j] += 0.0
+						pass
             # Q recursion
             Q[i,j] = 1.0
             for d in range(i,j-3): # iterating over all possible rightmost pairs
@@ -166,7 +166,7 @@ def linear_derivatives_over_val(g_base_pair, g_loop, g_stack, N, g): # g : param
                             dQ_int = (Q_interior(g_base_pair[i,j], g_loop, g_stack + h, interior_loop_type) - q_int_ij)/h
                         dQb[i,j] += dQ_int * Qb[d,e] + q_int_ij * dQb[d,e]
                     else: # no interior loop possible (one or both base pairs can't form)
-                        pass #Qb[i,j] += 0.0
+                        pass
             # Q recursion
             Q[i,j] = 1.0
             for d in range(i,j-3): # iterating over all possible rightmost pairs
@@ -208,9 +208,9 @@ def circular(g_base_pair, g_loop, g_stack, N):
                                 interior_loop_type = 'l' #g_interior = g_base_pair[i,j] + g_loop
                             Qb[i,j] += Qb[d,e] * Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type)
                         else: # interior loop not possible
-							pass #Qb[i,j] += 0.0
+							pass
                     else:
-						pass #Qb[i,j] += 0.0
+						pass
             Q[i,j] = 1.0
             if i == 0 and j == N-1: # closing chain
                 for d in range(0, N-4):
@@ -270,9 +270,9 @@ def circular_derivatives(g_base_pair, g_loop, g_stack, N, g):
                                 dQ_int = (Q_interior(g_base_pair[i,j], g_loop, g_stack + h, interior_loop_type) - q_int_ij)/h
                             dQb[i,j] += dQ_int * Qb[d,e] + q_int_ij * dQb[d,e]
                         else: # interior loop not possible
-							pass #Qb[i,j] += 0.0
+							pass
                     else:
-						pass #Qb[i,j] += 0.0
+						pass
             Q[i,j] = 1.0
             if i == 0 and j == N-1: # closing chain
                 for d in range(0, N-4):
@@ -346,9 +346,9 @@ def circular_derivatives_over_val(g_base_pair, g_loop, g_stack, N, g):
                                     dQ_int = (Q_interior(g_base_pair[i,j], g_loop, g_stack + h, interior_loop_type) - q_int_ij)/h
                                 dQb[i,j] += dQ_int * Qb[d,e] + q_int_ij * dQb[d,e]
                             else: # interior loop not possible
-                                pass #Qb[i,j] += 0.0
+                                pass
                         else:
-                            pass #Qb[i,j] += 0.0
+                            pass
             Q[i,j] = 1.0
             if i == 0 and j == N-1: # closing chain
                 for d in range(0, N-4):

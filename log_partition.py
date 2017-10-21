@@ -50,8 +50,6 @@ def linear(g_base_pair, g_loop, g_stack, N):
                             interior_loop_type = 's'
                         else: # if loop
                             interior_loop_type = 'l'
-                        #for k in range(len(Qb[d][e])):
-                        #    Qb[i][j].append(Qb[d][e][k] - (g_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type)/(R*T)))
                         Qb[i][j] += [ qb - (g_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type)*invRT) for qb in Qb[d][e] ]
             # Q recursion
             for d in range(i,j-3): # iterating over all possible rightmost pairs
@@ -60,9 +58,7 @@ def linear(g_base_pair, g_loop, g_stack, N):
                         Q[i][j] += Qb[d][e]
                     else:
                         Q[i][j] += [ qb + q for qb in Qb[d][e] for q in Q[i][d-1] ]
-                        #for k in range(len(Q[i][d-1])):
-                        #    for m in range(len(Qb[d][e])):
-                        #        Q[i][j].append(Q[i][d-1][k] + Qb[d][e][m])
+
     return sm.logsumexp(Q[0][N-1]) #np.sum(np.exp(Q[0][N-1]))
 
 
@@ -96,16 +92,14 @@ def circular(g_base_pair, g_loop, g_stack, N):
                             else: #loop
                                 interior_loop_type = 'l' #g_interior = g_base_pair[i,j] + g_loop
                             Qb[i][j] += [ qb - g_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type)*invRT for qb in Qb[d][e] ]
-                            #for k in range(len(Qb[d][e])):
-                            #    Qb[i][j].append(Qb[d][e][k] - (g_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type)/(R*T)))
+        
             # Q recursion
             if i == 0 and j == N-1: # closing chain
                 for d in xrange(0, N-4):
                     for e in xrange(d+4,N):
                         if d == 0:
                             Q[i][j] += [ qb - g_loop/(R*T) for qb in Qb[d][e] ]
-                            #for k in range(len(Qb[d][e])):
-                            #    Q[i][j].append(Qb[d][e][k] - g_loop/(R*T))
+                        
                         else:
                             if e == N-1 and len(Qb[0][d-1]) and len(Qb[d][N-1]): # to account for stacked pair forming when chain is closed
                                 Q[i][j] += [ qb_k + q_m - g_loop/(R*T) for qb_k in Qb[d][N-1] for q_m in Q[0][d-1] ]
@@ -118,9 +112,7 @@ def circular(g_base_pair, g_loop, g_stack, N):
                                             Q[i][j].append(g_partial - g_stack*invRT)
                             else: # to account for interior loop forming when chain is closed
                                 Q[i][j] += [ q + qb for q in Q[i][d-1] for qb in Qb[d][e] ]
-                                #for k in range(len(Q[i][d-1])):
-                                #    for m in range(len(Qb[d][e])):
-                                #        Q[i][j].append(Q[i][d-1][k] + Qb[d][e][m] - g_loop/(R*T))
+        
             else:
                 for d in xrange(i,j-3): # iterating over all possible rightmost pairs
                     for e in xrange(d+4,j+1):
@@ -128,9 +120,7 @@ def circular(g_base_pair, g_loop, g_stack, N):
                             Q[i][j] += Qb[d][e]
                         else:
                             Q[i][j] += [ qb + q for q in Q[i][d-1] for qb in Qb[d][e] ]
-                            #for k in range(len(Q[i][d-1])):
-                            #    for m in range(len(Qb[d][e])):
-                            #        Q[i][j].append(Q[i][d-1][k] + Qb[d][e][m])
+
     return sm.logsumexp(Q[0][N-1])
 
 
