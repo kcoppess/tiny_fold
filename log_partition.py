@@ -13,7 +13,7 @@ h = p.h # differentiation step size
 
 R = p.R # kcal/K/mol universal gas constant
 T = p.T # K temperature (standard state - room temp)
-
+invRT = 1.0/(R*T)
 
 # free energy contribution from interior loop closed with base pair BP
 # avoids double counting free energy from base pair formation
@@ -32,8 +32,6 @@ def linear(g_base_pair, g_loop, g_stack, N):
     
     # initializing bound partition matrix
     Qb = [[[] for _ in range(N)] for _ in range(N)]
-    
-    invRT = 1.0/(R*T)
     
     # calculation of partition function
     for l in range(1,N+1): # iterating over all subsequence lengths

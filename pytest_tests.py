@@ -69,7 +69,7 @@ def test_log_partition():
     assert(True)
 
 def test_derivs_AU():
-    for seq, val in zip(seqs, [0,-2.10624588E-05,0,-0.003355171279,-0.0746191942895]):
+    for seq, val in zip(seqs, [0,-2.10624588E-05,0,-0.00335171279,-0.0746191942895]):
         assert(almost_equal(partition_deriv_test_AU(seq), val, tol))
 
 def test_derivs_GU():
@@ -81,7 +81,7 @@ def test_derivs_GC():
         assert(almost_equal(partition_deriv_test_GC(seq), val, tol))
 
 def test_derivs_stack():
-    for seq, val in zip(seqs, [0,0,0,-0.003330650339,-0.039330624165]):
+    for seq, val in zip(seqs, [0,0,0,-0.003330650339,-0.074311205720273069]):
         assert(almost_equal(partition_deriv_test_stack(seq), val, tol))
 
 def test_circ_partition():

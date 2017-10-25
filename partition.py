@@ -1,6 +1,6 @@
 # last modified: September 14, 2017
 # toy model to calculate partition function for a given sequence
-# based off of NUPACK pseudo-code (N^4) given in Dirks & Pierce 2003
+# based off of NUPACK pseudo-code XXX N^3 XXX given in Dirks & Pierce 2003
 # NOTE IGNORING MULTILOOPS
 import numpy as np
 import parameters as p
@@ -36,7 +36,7 @@ def linear(g_base_pair, g_loop, g_stack, N):
     
     # initializing bound partition matrix
     Qb = np.zeros((N,N))
-    
+    Qs = np.zeros((N,N))    
     # calculation of partition function
     for l in range(1,N+1): # iterating over all subsequence lengths
         for i in range(0,N-l+1): # iterating over all starting positions for subsequences
@@ -57,14 +57,16 @@ def linear(g_base_pair, g_loop, g_stack, N):
                         Qb[i,j] += Qb[d,e] * Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type)
                     else: # no interior loop possible (one or both base pairs can't form)
 						pass
+            # Qs recursion
+            for d in range(i+4, j+1): # iterate over all rightmost pairs with base i (beginning of subsequence)
+                Qs[i,j] += Qb[i,d]
             # Q recursion
             Q[i,j] = 1.0
             for d in range(i,j-3): # iterating over all possible rightmost pairs
-                for e in range(d+4,j+1):
-                    if d == 0: # to deal with issue of wrapping around in the last iteration
-                        Q[i,j] += Qb[d,e]
-                    else:
-                        Q[i,j] += Q[i,d-1]*Qb[d,e]
+                if d == 0: # to deal with issue of wrapping around in the last iteration
+                    Q[i,j] += Qs[d,j]
+                else:
+                    Q[i,j] += Q[i,d-1]*Qs[d,j]
     return Q[0,N-1]
 
 
@@ -81,6 +83,9 @@ def linear_derivatives(g_base_pair, g_loop, g_stack, N, g): # g : parameter that
     Qb = np.zeros((N,N))
     dQb = np.zeros((N,N)) # stores bound derivatives
 
+    Qs = np.zeros((N,N))
+    dQs = np.zeros((N,N))
+
     # LINEAR SEQUENCE calculation of partition function and its derivative
     for l in range(1,N+1): # iterating over all subsequence lengths
         for i in range(0,N-l+1): # iterating over all starting positions for subsequences
@@ -90,7 +95,7 @@ def linear_derivatives(g_base_pair, g_loop, g_stack, N, g): # g : parameter that
                 q_hairpin_ij = Q_hairpin(g_base_pair[i,j], g_loop)
                 Qb[i,j] = q_hairpin_ij
                 if g == g_base_pair[i,j]:  # differentiating wrt current base pair parameter
-                    dQb[i,j] = (Q_hairpin(g_base_pair[i,j] + h, g_loop) - q_hairpin_ij)/h
+                    dQb[i,j] = -q_hairpin_ij * invRT #(Q_hairpin(g_base_pair[i,j] + h, g_loop) - q_hairpin_ij)/h
             else: # no hairpin possible
                 Qb[i,j] = 0.0
                 dQb[i,j] = 0.0
@@ -106,22 +111,25 @@ def linear_derivatives(g_base_pair, g_loop, g_stack, N, g): # g : parameter that
                         Qb[i,j] += Qb[d,e] * q_int_ij
                         dQ_int = 0.0 # derivative of Q_interior
                         if g == g_base_pair[i,j]:
-                            dQ_int = (Q_interior(g_base_pair[i,j] + h, g_loop, g_stack, interior_loop_type) - q_int_ij)/h
+                            dQ_int = -q_int_ij * invRT #(Q_interior(g_base_pair[i,j] + h, g_loop, g_stack, interior_loop_type) - q_int_ij)/h
                         elif g == g_stack and interior_loop_type == 's':
-                            dQ_int = (Q_interior(g_base_pair[i,j], g_loop, g_stack + h, interior_loop_type) - q_int_ij)/h
+                            dQ_int = -q_int_ij * invRT #(Q_interior(g_base_pair[i,j], g_loop, g_stack + h, interior_loop_type) - q_int_ij)/h
                         dQb[i,j] += dQ_int * Qb[d,e] + q_int_ij * dQb[d,e]
                     else: # no interior loop possible (one or both base pairs can't form)
 						pass
+            # Qs recursion
+            for d in range(i+4, j+1): # iterate over all rightmost pairs with base i (beginning of subsequence)
+                Qs[i,j] += Qb[i,d]
+                dQs[i,j] += dQb[i,d]
             # Q recursion
             Q[i,j] = 1.0
             for d in range(i,j-3): # iterating over all possible rightmost pairs
-                for e in range(d+4, j+1):
-                    if d == 0: # to deal with issue of wrapping around in the last iteration
-                        Q[i,j] += Qb[d,e]
-                        dQ[i,j] += dQb[d,e]
-                    else:
-                        Q[i,j] += Q[i,d-1]*Qb[d,e]
-                        dQ[i,j] += dQ[i,d-1]*Qb[d,e] + Q[i,d-1]*dQb[d,e]
+                if d == 0: # to deal with issue of wrapping around in the last iteration
+                    Q[i,j] += Qs[d,j]
+                    dQ[i,j] += dQs[d,j]
+                else:
+                    Q[i,j] += Q[i,d-1]*Qs[d,j]
+                    dQ[i,j] += dQ[i,d-1]*Qs[d,j] + Q[i,d-1]*dQs[d,j]
     return dQ[0,N-1]
 
 def linear_derivatives_over_val(g_base_pair, g_loop, g_stack, N, g): # g : parameter that differentiating wrt
@@ -135,7 +143,10 @@ def linear_derivatives_over_val(g_base_pair, g_loop, g_stack, N, g): # g : param
     # initializing bound partition matrix
     Qb = np.zeros((N,N))
     dQb = np.zeros((N,N)) # stores bound derivatives
-    
+
+    Qs = np.zeros((N,N))
+    dQs = np.zeros((N,N))
+
     # LINEAR SEQUENCE calculation of partition function and its derivative
     for l in range(1,N+1): # iterating over all subsequence lengths
         for i in range(0,N-l+1): # iterating over all starting positions for subsequences
@@ -145,7 +156,7 @@ def linear_derivatives_over_val(g_base_pair, g_loop, g_stack, N, g): # g : param
                 q_hairpin_ij = Q_hairpin(g_base_pair[i,j], g_loop)
                 Qb[i,j] = q_hairpin_ij
                 if g == g_base_pair[i,j]:  # differentiating wrt current base pair parameter
-                    dQb[i,j] = (Q_hairpin(g_base_pair[i,j] + h, g_loop) - q_hairpin_ij)/h
+                    dQb[i,j] = -q_hairpin_ij * invRT #(Q_hairpin(g_base_pair[i,j] + h, g_loop) - q_hairpin_ij)/h
             else: # no hairpin possible
                 Qb[i,j] = 0.0
                 dQb[i,j] = 0.0
@@ -161,23 +172,28 @@ def linear_derivatives_over_val(g_base_pair, g_loop, g_stack, N, g): # g : param
                         Qb[i,j] += Qb[d,e] * q_int_ij
                         dQ_int = 0.0 # derivative of Q_interior
                         if g == g_base_pair[i,j]:
-                            dQ_int = (Q_interior(g_base_pair[i,j] + h, g_loop, g_stack, interior_loop_type) - q_int_ij)/h
+                            dQ_int = -q_int_ij * invRT #(Q_interior(g_base_pair[i,j] + h, g_loop, g_stack, interior_loop_type) - q_int_ij)/h
                         elif g == g_stack and interior_loop_type == 's':
-                            dQ_int = (Q_interior(g_base_pair[i,j], g_loop, g_stack + h, interior_loop_type) - q_int_ij)/h
+                            dQ_int = -q_int_ij * invRT #(Q_interior(g_base_pair[i,j], g_loop, g_stack + h, interior_loop_type) - q_int_ij)/h
                         dQb[i,j] += dQ_int * Qb[d,e] + q_int_ij * dQb[d,e]
                     else: # no interior loop possible (one or both base pairs can't form)
                         pass
+            
+            # Qs recursion
+            for d in range(i+4, j+1): # iterate over all rightmost pairs with base i (beginning of subsequence)
+                Qs[i,j] += Qb[i,d]
+                dQs[i,j] += dQb[i,d]
             # Q recursion
             Q[i,j] = 1.0
             for d in range(i,j-3): # iterating over all possible rightmost pairs
-                for e in range(d+4, j+1):
-                    if d == 0: # to deal with issue of wrapping around in the last iteration
-                        Q[i,j] += Qb[d,e]
-                        dQ[i,j] += dQb[d,e]
-                    else:
-                        Q[i,j] += Q[i,d-1]*Qb[d,e]
-                        dQ[i,j] += dQ[i,d-1]*Qb[d,e] + Q[i,d-1]*dQb[d,e]
+                if d == 0: # to deal with issue of wrapping around in the last iteration
+                    Q[i,j] += Qs[d,j]
+                    dQ[i,j] += dQs[d,j]
+                else:
+                    Q[i,j] += Q[i,d-1]*Qs[d,j]
+                    dQ[i,j] += dQ[i,d-1]*Qs[d,j] + Q[i,d-1]*dQs[d,j]
     return dQ[0,N-1]/Q[0,N-1]
+
 
 def circular(g_base_pair, g_loop, g_stack, N):
     Q = np.zeros((N,N))
@@ -185,6 +201,7 @@ def circular(g_base_pair, g_loop, g_stack, N):
         Q[m,m-1] = 1.0
 
     Qb = np.zeros((N,N))
+    Qs = np.zeros((N,N))
 
     exp_neg_gloop_over_RT = np.exp(-g_loop*invRT)
     exp_neg_gstack_gloop_over_RT = np.exp(-(g_stack-g_loop)*invRT)
@@ -211,24 +228,33 @@ def circular(g_base_pair, g_loop, g_stack, N):
 							pass
                     else:
 						pass
+            # Qs recursion
+            for d in range(i+4, j+1): # iterate over all rightmost pairs with base i (beginning of subsequence)
+                Qs[i,j] += Qb[i,d]
             Q[i,j] = 1.0
             if i == 0 and j == N-1: # closing chain
                 for d in range(0, N-4):
-                    for e in range(d+4,N):
-                        if d == 0:
-                            Q[i,j] += Qb[0,e]*exp_neg_gloop_over_RT
-                        else:
-                            if e == N-1 and Qb[0,d-1] and Qb[d,N-1]: # to account for stacked pair forming when chain is closed
-                                Q[i,j] += (Q[0,d-1] + Qb[0,d-1]*(exp_neg_gstack_gloop_over_RT - 1))*Qb[d,N-1]*exp_neg_gloop_over_RT
-                            else: # to account for interior loop forming when chain is closed
-                                Q[i,j] += Q[i,d-1]*Qb[d,e]*exp_neg_gloop_over_RT
+                    if d == 0:
+                        Q[i,j] += Qs[0,j]*exp_neg_gloop_over_RT
+                    else:
+                        if Qb[0,d-1] and Qb[d,N-1]: # to account for stacked pair forming when chain is closed
+                            Q[i,j] += (Q[0,d-1] + Qs[0,d-1]*(exp_neg_gstack_gloop_over_RT - 1))*Qs[d,N-1]*exp_neg_gloop_over_RT
+                        else: # to account for interior loop forming when chain is closed
+                            Q[i,j] += Q[i,d-1]*Qs[d,j]*exp_neg_gloop_over_RT
+                    #for e in range(d+4,N):
+                    #    if d == 0:
+                    #        Q[i,j] += Qb[0,e]*exp_neg_gloop_over_RT
+                    #    else:
+                    #        if e == N-1 and Qb[0,d-1] and Qb[d,N-1]: # to account for stacked pair forming when chain is closed
+                    #            Q[i,j] += (Q[0,d-1] + Qb[0,d-1]*(exp_neg_gstack_gloop_over_RT - 1))*Qb[d,N-1]*exp_neg_gloop_over_RT
+                    #        else: # to account for interior loop forming when chain is closed
+                    #            Q[i,j] += Q[i,d-1]*Qb[d,e]*exp_neg_gloop_over_RT
             else:
                 for d in range(i,j-3):
-                    for e in range(d+4,j+1):
-                        if d == 0:
-                            Q[i,j] += Qb[d,e]
-                        else:
-                            Q[i,j] += Q[i,d-1]*Qb[d,e]
+                    if d == 0:
+                        Q[i,j] += Qs[d,j]
+                    else:
+                        Q[i,j] += Q[i,d-1]*Qs[d,j]
     return Q[0,N-1]
 
 
@@ -241,6 +267,9 @@ def circular_derivatives(g_base_pair, g_loop, g_stack, N, g):
 
     Qb = np.zeros((N,N))
     dQb = np.zeros((N,N))
+
+    Qs = np.zeros((N,N))
+    dQs = np.zeros((N,N))
        
     exp_neg_gstack_gloop_over_RT = np.exp(-(g_stack-g_loop)*invRT)
 
@@ -251,7 +280,7 @@ def circular_derivatives(g_base_pair, g_loop, g_stack, N, g):
                 q_hairpin_ij = Q_hairpin(g_base_pair[i,j], g_loop)
                 Qb[i,j] = q_hairpin_ij
                 if g == g_base_pair[i,j]:
-                    dQb[i,j] = (Q_hairpin(g_base_pair[i,j] + h, g_loop) - q_hairpin_ij)/h
+                    dQb[i,j] = -q_hairpin_ij * invRT #(Q_hairpin(g_base_pair[i,j] + h, g_loop) - q_hairpin_ij)/h
             else:  # hairpin not possible
 				Qb[i,j] = 0.0
             for d in range(i+1,j-4):
@@ -267,46 +296,71 @@ def circular_derivatives(g_base_pair, g_loop, g_stack, N, g):
                             Qb[i,j] += Qb[d,e] * q_int_ij
                             dQ_int = 0.0
                             if g == g_base_pair[i,j]:
-                                dQ_int = (Q_interior(g_base_pair[i,j] + h, g_loop, g_stack, interior_loop_type) - q_int_ij)/h
+                                dQ_int = -q_int_ij * invRT #(Q_interior(g_base_pair[i,j] + h, g_loop, g_stack, interior_loop_type) - q_int_ij)/h
                             elif g == g_stack and interior_loop_type == 's':
-                                dQ_int = (Q_interior(g_base_pair[i,j], g_loop, g_stack + h, interior_loop_type) - q_int_ij)/h
+                                dQ_int = -q_int_ij * invRT #(Q_interior(g_base_pair[i,j], g_loop, g_stack + h, interior_loop_type) - q_int_ij)/h
                             dQb[i,j] += dQ_int * Qb[d,e] + q_int_ij * dQb[d,e]
                         else: # interior loop not possible
 							pass
                     else:
 						pass
+            for d in range(i+4, j+1): # iterate over all rightmost pairs with base i (beginning of subsequence)
+                Qs[i,j] += Qb[i,d]
+                dQs[i,j] += dQb[i,d]
             Q[i,j] = 1.0
             if i == 0 and j == N-1: # closing chain
                 for d in range(0, N-4):
-                    for e in range(d+4,N):
-                        exp_neg_gloop_over_RT = np.exp(-g_loop*invRT)
-                        if d == 0:
-                            Q[i,j] += Qb[0,e]* exp_neg_gloop_over_RT
-                            if g == g_loop:
-                                dQ[i,j] += dQb[0,e] * exp_neg_gloop_over_RT - Qb[0,e] * exp_neg_gloop_over_RT*invRT
+                    exp_neg_gloop_over_RT = np.exp(-g_loop*invRT)
+                    if d == 0:
+                        Q[i,j] += Qs[0,j]* exp_neg_gloop_over_RT
+                        dQ[i,j] += dQs[0,j] * exp_neg_gloop_over_RT
+                    else:
+                        if Qb[0,d-1] and Qb[d,N-1]: # to account for stacked pair forming when chain is closed
+                            Q[i,j] += (Q[0,d-1] + Qs[0,d-1]*(exp_neg_gstack_gloop_over_RT - 1))*Qs[d,N-1]*exp_neg_gloop_over_RT
+                            if g == g_stack:
+                                dQ[i,j] += (dQ[0,d-1] + dQs[0,d-1]*(exp_neg_gstack_gloop_over_RT -1) + Qs[0,d-1]*(-exp_neg_gstack_gloop_over_RT)*Qs[d,N-1]*exp_neg_gloop_over_RT)
+                                dQ[i,j] += (Q[0,d-1] + Qs[0,d-1]*(exp_neg_gstack_gloop_over_RT - 1))*dQs[d,N-1]*exp_neg_gloop_over_RT
                             else:
-                                dQ[i,j] += dQb[0,e] * exp_neg_gloop_over_RT
-                        else:
-                            if e == N-1 and Qb[0,d-1] and Qb[d,N-1]: # to account for stacked pair forming when chain is closed
-                                Q[i,j] += (Q[0,d-1] + Qb[0,d-1]*(exp_neg_gstack_gloop_over_RT - 1))*Qb[d,N-1]*exp_neg_gloop_over_RT
-                                if g == g_stack:
-                                    dQ[i,j] += (dQ[0,d-1] + dQb[0,d-1]*(exp_neg_gstack_gloop_over_RT -1) + Qb[0,d-1]*(-exp_neg_gstack_gloop_over_RT)*Qb[d,N-1]*exp_neg_gloop_over_RT)
-                                    dQ[i,j] += (Q[0,d-1] + Qb[0,d-1]*(exp_neg_gstack_gloop_over_RT - 1))*dQb[d,N-1]*exp_neg_gloop_over_RT
-                                else:
-                                    dQ[i,j] += (dQ[0,d-1] + dQb[0,d-1]*(exp_neg_gstack_gloop_over_RT -1))*Qb[d,N-1]*exp_neg_gloop_over_RT
-                                    dQ[i,j] += (Q[0,d-1] + Qb[0,d-1]*(exp_neg_gstack_gloop_over_RT - 1))*dQb[d,N-1]*exp_neg_gloop_over_RT
-                            else: # to account for interior loop forming when chain is closed
-                                Q[i,j] += Q[i,d-1]*Qb[d,e]*exp_neg_gloop_over_RT
-                                dQ[i,j] += dQ[i,d-1]*Qb[d,e]*exp_neg_gloop_over_RT + Q[i,d-1]*dQb[d,e]*exp_neg_gloop_over_RT
+                                dQ[i,j] += (dQ[0,d-1] + dQs[0,d-1]*(exp_neg_gstack_gloop_over_RT -1))*Qs[d,N-1]*exp_neg_gloop_over_RT
+                                dQ[i,j] += (Q[0,d-1] + Qs[0,d-1]*(exp_neg_gstack_gloop_over_RT - 1))*dQs[d,N-1]*exp_neg_gloop_over_RT
+                        else: # to account for interior loop forming when chain is closed
+                            Q[i,j] += Q[i,d-1]*Qs[d,j]*exp_neg_gloop_over_RT
+                            dQ[i,j] += dQ[i,d-1]*Qs[d,j]*exp_neg_gloop_over_RT + Q[i,d-1]*dQs[d,j]*exp_neg_gloop_over_RT
+                    #for e in range(d+4,N):
+                    #    exp_neg_gloop_over_RT = np.exp(-g_loop*invRT)
+                    #    if d == 0:
+                    #        Q[i,j] += Qb[0,e]* exp_neg_gloop_over_RT
+                    #        if g == g_loop:
+                    #            dQ[i,j] += dQb[0,e] * exp_neg_gloop_over_RT - Qb[0,e] * exp_neg_gloop_over_RT*invRT
+                    #        else:
+                    #            dQ[i,j] += dQb[0,e] * exp_neg_gloop_over_RT
+                    #    else:
+                    #        if e == N-1 and Qb[0,d-1] and Qb[d,N-1]: # to account for stacked pair forming when chain is closed
+                    #            Q[i,j] += (Q[0,d-1] + Qb[0,d-1]*(exp_neg_gstack_gloop_over_RT - 1))*Qb[d,N-1]*exp_neg_gloop_over_RT
+                    #            if g == g_stack:
+                    #                dQ[i,j] += (dQ[0,d-1] + dQb[0,d-1]*(exp_neg_gstack_gloop_over_RT -1) + Qb[0,d-1]*(-exp_neg_gstack_gloop_over_RT)*Qb[d,N-1]*exp_neg_gloop_over_RT)
+                    #                dQ[i,j] += (Q[0,d-1] + Qb[0,d-1]*(exp_neg_gstack_gloop_over_RT - 1))*dQb[d,N-1]*exp_neg_gloop_over_RT
+                    #            else:
+                    #                dQ[i,j] += (dQ[0,d-1] + dQb[0,d-1]*(exp_neg_gstack_gloop_over_RT -1))*Qb[d,N-1]*exp_neg_gloop_over_RT
+                    #                dQ[i,j] += (Q[0,d-1] + Qb[0,d-1]*(exp_neg_gstack_gloop_over_RT - 1))*dQb[d,N-1]*exp_neg_gloop_over_RT
+                    #        else: # to account for interior loop forming when chain is closed
+                    #            Q[i,j] += Q[i,d-1]*Qb[d,e]*exp_neg_gloop_over_RT
+                    #            dQ[i,j] += dQ[i,d-1]*Qb[d,e]*exp_neg_gloop_over_RT + Q[i,d-1]*dQb[d,e]*exp_neg_gloop_over_RT
             else:
                 for d in range(i,j-3):
-                    for e in range(d+4,j+1):
-                        if d == 0:
-                            Q[i,j] += Qb[d,e]
-                            dQ[i,j] += dQb[d,e]
-                        else:
-                            Q[i,j] += Q[i,d-1]*Qb[d,e]
-                            dQ[i,j] += dQ[i,d-1] * Qb[d,e] + Q[i,d-1] * dQb[d,e]
+                    if d == 0: # to deal with issue of wrapping around in the last iteration
+                        Q[i,j] += Qs[d,j]
+                        dQ[i,j] += dQs[d,j]
+                    else:
+                        Q[i,j] += Q[i,d-1]*Qs[d,j]
+                        dQ[i,j] += dQ[i,d-1]*Qs[d,j] + Q[i,d-1]*dQs[d,j]
+                    #for e in range(d+4,j+1):
+                    #    if d == 0:
+                    #        Q[i,j] += Qb[d,e]
+                    #        dQ[i,j] += dQb[d,e]
+                    #    else:
+                    #        Q[i,j] += Q[i,d-1]*Qb[d,e]
+                    #        dQ[i,j] += dQ[i,d-1] * Qb[d,e] + Q[i,d-1] * dQb[d,e]
     return dQ[0,N-1]
 
 def circular_derivatives_over_val(g_base_pair, g_loop, g_stack, N, g):
@@ -319,6 +373,9 @@ def circular_derivatives_over_val(g_base_pair, g_loop, g_stack, N, g):
     Qb = np.zeros((N,N))
     dQb = np.zeros((N,N))
 
+    Qs = np.zeros((N,N))
+    dQs = np.zeros((N,N))
+
     exp_neg_gstack_gloop_over_RT = np.exp(-(g_stack-g_loop)*invRT)
 
     for l in range(1, N+1): #length of subsequence
@@ -328,7 +385,7 @@ def circular_derivatives_over_val(g_base_pair, g_loop, g_stack, N, g):
                 q_hairpin_ij = Q_hairpin(g_base_pair[i,j], g_loop)
                 Qb[i,j] = q_hairpin_ij
                 if g == g_base_pair[i,j]:
-                    dQb[i,j] = (Q_hairpin(g_base_pair[i,j] + h, g_loop) - q_hairpin_ij)/h
+                    dQb[i,j] = -q_hairpin_ij * invRT #(Q_hairpin(g_base_pair[i,j] + h, g_loop) - q_hairpin_ij)/h
             else:  # hairpin not possible
                 Qb[i,j] = 0.0
                 for d in range(i+1,j-4):
@@ -344,45 +401,70 @@ def circular_derivatives_over_val(g_base_pair, g_loop, g_stack, N, g):
                                 Qb[i,j] += Qb[d,e] * q_int_ij
                                 dQ_int = 0.0
                                 if g == g_base_pair[i,j]:
-                                    dQ_int = (Q_interior(g_base_pair[i,j] + h, g_loop, g_stack, interior_loop_type) - q_int_ij)/h
+                                    dQ_int = -q_int_ij * invRT #(Q_interior(g_base_pair[i,j] + h, g_loop, g_stack, interior_loop_type) - q_int_ij)/h
                                 elif g == g_stack and interior_loop_type == 's':
-                                    dQ_int = (Q_interior(g_base_pair[i,j], g_loop, g_stack + h, interior_loop_type) - q_int_ij)/h
+                                    dQ_int = -q_int_ij * invRT #(Q_interior(g_base_pair[i,j], g_loop, g_stack + h, interior_loop_type) - q_int_ij)/h
                                 dQb[i,j] += dQ_int * Qb[d,e] + q_int_ij * dQb[d,e]
                             else: # interior loop not possible
                                 pass
                         else:
                             pass
+            for d in range(i+4, j+1): # iterate over all rightmost pairs with base i (beginning of subsequence)
+                Qs[i,j] += Qb[i,d]
+                dQs[i,j] += dQb[i,d]
             Q[i,j] = 1.0
             if i == 0 and j == N-1: # closing chain
                 for d in range(0, N-4):
-                    for e in range(d+4,N):
-                        exp_neg_gloop_over_RT = np.exp(-g_loop*invRT)
-                        if d == 0:
-                            Q[i,j] += Qb[0,e]* exp_neg_gloop_over_RT
-                            if g == g_loop:
-                                dQ[i,j] += dQb[0,e] * exp_neg_gloop_over_RT - Qb[0,e] * exp_neg_gloop_over_RT*invRT
+                    exp_neg_gloop_over_RT = np.exp(-g_loop*invRT)
+                    if d == 0:
+                        Q[i,j] += Qs[0,j]* exp_neg_gloop_over_RT
+                        dQ[i,j] += dQs[0,j] * exp_neg_gloop_over_RT
+                    else:
+                        if Qb[0,d-1] and Qb[d,N-1]: # to account for stacked pair forming when chain is closed
+                            Q[i,j] += (Q[0,d-1] + Qs[0,d-1]*(exp_neg_gstack_gloop_over_RT - 1))*Qs[d,N-1]*exp_neg_gloop_over_RT
+                            if g == g_stack:
+                                dQ[i,j] += (dQ[0,d-1] + dQs[0,d-1]*(exp_neg_gstack_gloop_over_RT -1) + Qs[0,d-1]*(-exp_neg_gstack_gloop_over_RT)*Qs[d,N-1]*exp_neg_gloop_over_RT)
+                                dQ[i,j] += (Q[0,d-1] + Qs[0,d-1]*(exp_neg_gstack_gloop_over_RT - 1))*dQs[d,N-1]*exp_neg_gloop_over_RT
                             else:
-                                dQ[i,j] += dQb[0,e] * exp_neg_gloop_over_RT
-                        else:
-                            if e == N-1 and Qb[0,d-1] and Qb[d,N-1]: # to account for stacked pair forming when chain is closed
-                                Q[i,j] += (Q[0,d-1] + Qb[0,d-1]*(exp_neg_gstack_gloop_over_RT - 1))*Qb[d,N-1]*exp_neg_gloop_over_RT
-                                if g == g_stack:
-                                    dQ[i,j] += (dQ[0,d-1] + dQb[0,d-1]*(exp_neg_gstack_gloop_over_RT -1) + Qb[0,d-1]*(-exp_neg_gstack_gloop_over_RT)*Qb[d,N-1]*exp_neg_gloop_over_RT)
-                                    dQ[i,j] += (Q[0,d-1] + Qb[0,d-1]*(exp_neg_gstack_gloop_over_RT - 1))*dQb[d,N-1]*exp_neg_gloop_over_RT
-                                else:
-                                    dQ[i,j] += (dQ[0,d-1] + dQb[0,d-1]*(exp_neg_gstack_gloop_over_RT -1))*Qb[d,N-1]*exp_neg_gloop_over_RT
-                                    dQ[i,j] += (Q[0,d-1] + Qb[0,d-1]*(exp_neg_gstack_gloop_over_RT - 1))*dQb[d,N-1]*exp_neg_gloop_over_RT
-                            else: # to account for interior loop forming when chain is closed
-                                Q[i,j] += Q[i,d-1]*Qb[d,e]*exp_neg_gloop_over_RT
-                                dQ[i,j] += dQ[i,d-1]*Qb[d,e]*exp_neg_gloop_over_RT + Q[i,d-1]*dQb[d,e]*exp_neg_gloop_over_RT
+                                dQ[i,j] += (dQ[0,d-1] + dQs[0,d-1]*(exp_neg_gstack_gloop_over_RT -1))*Qs[d,N-1]*exp_neg_gloop_over_RT
+                                dQ[i,j] += (Q[0,d-1] + Qs[0,d-1]*(exp_neg_gstack_gloop_over_RT - 1))*dQs[d,N-1]*exp_neg_gloop_over_RT
+                        else: # to account for interior loop forming when chain is closed
+                            Q[i,j] += Q[i,d-1]*Qs[d,j]*exp_neg_gloop_over_RT
+                            dQ[i,j] += dQ[i,d-1]*Qs[d,j]*exp_neg_gloop_over_RT + Q[i,d-1]*dQs[d,j]*exp_neg_gloop_over_RT
+                    #for e in range(d+4,N):
+                    #    exp_neg_gloop_over_RT = np.exp(-g_loop*invRT)
+                    #    if d == 0:
+                    #        Q[i,j] += Qb[0,e]* exp_neg_gloop_over_RT
+                    #        if g == g_loop:
+                    #            dQ[i,j] += dQb[0,e] * exp_neg_gloop_over_RT - Qb[0,e] * exp_neg_gloop_over_RT*invRT
+                    #        else:
+                    #            dQ[i,j] += dQb[0,e] * exp_neg_gloop_over_RT
+                    #    else:
+                    #        if e == N-1 and Qb[0,d-1] and Qb[d,N-1]: # to account for stacked pair forming when chain is closed
+                    #            Q[i,j] += (Q[0,d-1] + Qb[0,d-1]*(exp_neg_gstack_gloop_over_RT - 1))*Qb[d,N-1]*exp_neg_gloop_over_RT
+                    #            if g == g_stack:
+                    #                dQ[i,j] += (dQ[0,d-1] + dQb[0,d-1]*(exp_neg_gstack_gloop_over_RT -1) + Qb[0,d-1]*(-exp_neg_gstack_gloop_over_RT)*Qb[d,N-1]*exp_neg_gloop_over_RT)
+                    #                dQ[i,j] += (Q[0,d-1] + Qb[0,d-1]*(exp_neg_gstack_gloop_over_RT - 1))*dQb[d,N-1]*exp_neg_gloop_over_RT
+                    #            else:
+                    #                dQ[i,j] += (dQ[0,d-1] + dQb[0,d-1]*(exp_neg_gstack_gloop_over_RT -1))*Qb[d,N-1]*exp_neg_gloop_over_RT
+                    #                dQ[i,j] += (Q[0,d-1] + Qb[0,d-1]*(exp_neg_gstack_gloop_over_RT - 1))*dQb[d,N-1]*exp_neg_gloop_over_RT
+                    #        else: # to account for interior loop forming when chain is closed
+                    #            Q[i,j] += Q[i,d-1]*Qb[d,e]*exp_neg_gloop_over_RT
+                    #            dQ[i,j] += dQ[i,d-1]*Qb[d,e]*exp_neg_gloop_over_RT + Q[i,d-1]*dQb[d,e]*exp_neg_gloop_over_RT
             else:
                 for d in range(i,j-3):
-                    for e in range(d+4,j+1):
-                        if d == 0:
-                            Q[i,j] += Qb[d,e]
-                            dQ[i,j] += dQb[d,e]
-                        else:
-                            Q[i,j] += Q[i,d-1]*Qb[d,e]
-                            dQ[i,j] += dQ[i,d-1] * Qb[d,e] + Q[i,d-1] * dQb[d,e]
+                    if d == 0: # to deal with issue of wrapping around in the last iteration
+                        Q[i,j] += Qs[d,j]
+                        dQ[i,j] += dQs[d,j]
+                    else:
+                        Q[i,j] += Q[i,d-1]*Qs[d,j]
+                        dQ[i,j] += dQ[i,d-1]*Qs[d,j] + Q[i,d-1]*dQs[d,j]
+                    #for e in range(d+4,j+1):
+                    #    if d == 0:
+                    #        Q[i,j] += Qb[d,e]
+                    #        dQ[i,j] += dQb[d,e]
+                    #    else:
+                    #        Q[i,j] += Q[i,d-1]*Qb[d,e]
+                    #        dQ[i,j] += dQ[i,d-1] * Qb[d,e] + Q[i,d-1] * dQb[d,e]
     return dQ[0,N-1]/Q[0,N-1]
 
