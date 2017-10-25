@@ -32,7 +32,8 @@ def linear(g_base_pair, g_loop, g_stack, N):
     
     # initializing bound partition matrix
     Qb = [[[] for _ in range(N)] for _ in range(N)]
-    
+    Qs = [[[] for _ in range(N)] for _ in range(N)]
+
     # calculation of partition function
     for l in range(1,N+1): # iterating over all subsequence lengths
         for i in range(0,N-l+1): # iterating over all starting positions for subsequences
@@ -49,13 +50,19 @@ def linear(g_base_pair, g_loop, g_stack, N):
                         else: # if loop
                             interior_loop_type = 'l'
                         Qb[i][j] += [ qb - (g_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type)*invRT) for qb in Qb[d][e] ]
+            for d in range(i+4, j+1):
+                Qs[i][j] += Qb[d][j]
             # Q recursion
             for d in range(i,j-3): # iterating over all possible rightmost pairs
-                for e in range(d+4,j+1):
-                    if d == 0: # to deal with issue of wrapping around in the last iteration
-                        Q[i][j] += Qb[d][e]
-                    else:
-                        Q[i][j] += [ qb + q for qb in Qb[d][e] for q in Q[i][d-1] ]
+                if d == 0: # to deal with issue of wrapping around in the last iteration
+                    Q[i][j] += Qs[d][j]
+                else:
+                    Q[i][j] += [ qs + q for qs in Qs[d][j] for q in Q[i][d-1] ]
+                #for e in range(d+4,j+1):
+                #    if d == 0: # to deal with issue of wrapping around in the last iteration
+                #        Q[i][j] += Qb[d][e]
+                #    else:
+                #        Q[i][j] += [ qb + q for qb in Qb[d][e] for q in Q[i][d-1] ]
 
     return sm.logsumexp(Q[0][N-1]) #np.sum(np.exp(Q[0][N-1]))
 
@@ -69,9 +76,10 @@ def circular(g_base_pair, g_loop, g_stack, N):
     
     # initializing bound partition matrix
     Qb = [[[] for i in range(N)] for i in range(N)]
-    
-    invRT = 1.0 / (R*T)
-    g_loop_over_RT = g_loop/(R*T)
+    Qs = [[[] for i in range(N)] for i in range(N)]
+
+    g_loop_over_RT = g_loop * invRT
+    g_stack_over_RT = g_stack * invRT
     
     # calculation of partition function
     for l in range(1,N+1): # iterating over all subsequence lengths
@@ -90,34 +98,52 @@ def circular(g_base_pair, g_loop, g_stack, N):
                             else: #loop
                                 interior_loop_type = 'l' #g_interior = g_base_pair[i,j] + g_loop
                             Qb[i][j] += [ qb - g_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type)*invRT for qb in Qb[d][e] ]
-        
+            for d in range(i+4, j+1):
+                Qs[i][j] += Qb[d][j]
             # Q recursion
             if i == 0 and j == N-1: # closing chain
                 for d in xrange(0, N-4):
-                    for e in xrange(d+4,N):
-                        if d == 0:
-                            Q[i][j] += [ qb - g_loop/(R*T) for qb in Qb[d][e] ]
-                        
-                        else:
-                            if e == N-1 and len(Qb[0][d-1]) and len(Qb[d][N-1]): # to account for stacked pair forming when chain is closed
-                                Q[i][j] += [ qb_k + q_m - g_loop/(R*T) for qb_k in Qb[d][N-1] for q_m in Q[0][d-1] ]
+                    if d == 0:
+                        Q[i][j] += [ qs - g_loop_over_RT for qs in Qs[d][j] ]
+                    else:
+                        if len(Qb[0][d-1]) and len(Qb[d][N-1]): # to account for stacked pair forming when chain is closed
+                            Q[i][j] += [ qs_k + q_m - g_loop_over_RT for qs_k in Qs[d][N-1] for q_m in Q[0][d-1] ]
+                            for qs_k in Qs[d][N-1]:
+                                for qs_w in Qs[0][d-1]:
+                                    g_partial = qs_k + qs_w
+                                    if (g_partial - g_loop*invRT) in Q[i][j]:
+                                        Q[i][j].remove(g_partial - g_loop_over_RT) # removing single instance; acting as subtracting a term
+                                        Q[i][j].append(g_partial - g_stack_over_RT)
+                        else: # to account for interior loop forming when chain is closed
+                            Q[i][j] += [ q + qs for q in Q[i][d-1] for qs in Qs[d][j] ]
+                    #for e in xrange(d+4,N):
+                    #    if d == 0:
+                    #        Q[i][j] += [ qb - g_loop/(R*T) for qb in Qb[d][e] ]
+                    #    
+                    #    else:
+                    #        if e == N-1 and len(Qb[0][d-1]) and len(Qb[d][N-1]): # to account for stacked pair forming when chain is closed
+                    #            Q[i][j] += [ qb_k + q_m - g_loop/(R*T) for qb_k in Qb[d][N-1] for q_m in Q[0][d-1] ]
 
-                                for qb_k in Qb[d][N-1]:
-                                    for qb_w in Qb[0][d-1]:
-                                        g_partial = qb_k + qb_w
-                                        if (g_partial - g_loop*invRT) in Q[i][j]:
-                                            Q[i][j].remove(g_partial - g_loop_over_RT) # removing single instance; acting as subtracting a term
-                                            Q[i][j].append(g_partial - g_stack*invRT)
-                            else: # to account for interior loop forming when chain is closed
-                                Q[i][j] += [ q + qb for q in Q[i][d-1] for qb in Qb[d][e] ]
+                    #            for qb_k in Qb[d][N-1]:
+                    #                for qb_w in Qb[0][d-1]:
+                    #                    g_partial = qb_k + qb_w
+                    #                    if (g_partial - g_loop*invRT) in Q[i][j]:
+                    #                        Q[i][j].remove(g_partial - g_loop_over_RT) # removing single instance; acting as subtracting a term
+                    #                        Q[i][j].append(g_partial - g_stack*invRT)
+                    #        else: # to account for interior loop forming when chain is closed
+                    #            Q[i][j] += [ q + qb for q in Q[i][d-1] for qb in Qb[d][e] ]
         
             else:
                 for d in xrange(i,j-3): # iterating over all possible rightmost pairs
-                    for e in xrange(d+4,j+1):
-                        if d == 0: # to deal with issue of wrapping around in the last iteration
-                            Q[i][j] += Qb[d][e]
-                        else:
-                            Q[i][j] += [ qb + q for q in Q[i][d-1] for qb in Qb[d][e] ]
+                    if d == 0: # to deal with issue of wrapping around in the last iteration
+                        Q[i][j] += Qs[d][j]
+                    else:
+                        Q[i][j] += [ qs + q for q in Q[i][d-1] for qs in Qs[d][j] ]
+                    #for e in xrange(d+4,j+1):
+                    #    if d == 0: # to deal with issue of wrapping around in the last iteration
+                    #        Q[i][j] += Qb[d][e]
+                    #    else:
+                    #        Q[i][j] += [ qb + q for q in Q[i][d-1] for qb in Qb[d][e] ]
 
     return sm.logsumexp(Q[0][N-1])
 
