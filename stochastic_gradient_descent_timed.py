@@ -95,5 +95,6 @@ profile = cProfile.Profile()
 profile.enable()
 main()
 profile.disable()
+profile.print_stats()
 profile.dump_stats("%s.statout" % sys.argv[1])
 
