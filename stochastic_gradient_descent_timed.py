@@ -1,6 +1,7 @@
 # modified: Septemeber 22, 2017
 # using Adam method
 import numpy as np
+import partition as z
 #import log_partition as log_z
 import base_pair_probabilities as bpp
 import parameters as p
@@ -113,9 +114,11 @@ def main():
         k += 1
     print param
 
+sequence = ''.join(random.choice('AUGC') for _ in range(501))
+g_base_pair = gm.generator(sequence, 5.69, 6., 4.09, 500)
 profile = cProfile.Profile()
 profile.enable()
-main()
+print z.linear(g_base_pair, 1., -7.09, 500)
 profile.disable()
 profile.print_stats()
 profile.dump_stats("%s.statout" % sys.argv[1])
