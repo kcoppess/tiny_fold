@@ -56,7 +56,7 @@ def linear(g_base_pair, g_loop, g_stack, N):
                             interior_loop_type = 'l'
                         Qb[i,j] += Qb[d,e] * Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type)
                     else: # no interior loop possible (one or both base pairs can't form)
-						pass
+			pass
             # Qs recursion
             for d in range(i+4, j+1): # iterate over all rightmost pairs with base i (beginning of subsequence)
                 Qs[i,j] += Qb[i,d]
@@ -116,7 +116,7 @@ def linear_derivatives(g_base_pair, g_loop, g_stack, N, g): # g : parameter that
                             dQ_int = -q_int_ij * invRT #(Q_interior(g_base_pair[i,j], g_loop, g_stack + h, interior_loop_type) - q_int_ij)/h
                         dQb[i,j] += dQ_int * Qb[d,e] + q_int_ij * dQb[d,e]
                     else: # no interior loop possible (one or both base pairs can't form)
-						pass
+                        pass
             # Qs recursion
             for d in range(i+4, j+1): # iterate over all rightmost pairs with base i (beginning of subsequence)
                 Qs[i,j] += Qb[i,d]
@@ -225,9 +225,9 @@ def circular(g_base_pair, g_loop, g_stack, N):
                                 interior_loop_type = 'l' #g_interior = g_base_pair[i,j] + g_loop
                             Qb[i,j] += Qb[d,e] * Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type)
                         else: # interior loop not possible
-							pass
+                            pass
                     else:
-						pass
+                        pass
             # Qs recursion
             for d in range(i+4, j+1): # iterate over all rightmost pairs with base i (beginning of subsequence)
                 Qs[i,j] += Qb[i,d]
@@ -241,14 +241,6 @@ def circular(g_base_pair, g_loop, g_stack, N):
                             Q[i,j] += (Q[0,d-1] + Qs[0,d-1]*(exp_neg_gstack_gloop_over_RT - 1))*Qs[d,N-1]*exp_neg_gloop_over_RT
                         else: # to account for interior loop forming when chain is closed
                             Q[i,j] += Q[i,d-1]*Qs[d,j]*exp_neg_gloop_over_RT
-                    #for e in range(d+4,N):
-                    #    if d == 0:
-                    #        Q[i,j] += Qb[0,e]*exp_neg_gloop_over_RT
-                    #    else:
-                    #        if e == N-1 and Qb[0,d-1] and Qb[d,N-1]: # to account for stacked pair forming when chain is closed
-                    #            Q[i,j] += (Q[0,d-1] + Qb[0,d-1]*(exp_neg_gstack_gloop_over_RT - 1))*Qb[d,N-1]*exp_neg_gloop_over_RT
-                    #        else: # to account for interior loop forming when chain is closed
-                    #            Q[i,j] += Q[i,d-1]*Qb[d,e]*exp_neg_gloop_over_RT
             else:
                 for d in range(i,j-3):
                     if d == 0:
@@ -301,9 +293,9 @@ def circular_derivatives(g_base_pair, g_loop, g_stack, N, g):
                                 dQ_int = -q_int_ij * invRT #(Q_interior(g_base_pair[i,j], g_loop, g_stack + h, interior_loop_type) - q_int_ij)/h
                             dQb[i,j] += dQ_int * Qb[d,e] + q_int_ij * dQb[d,e]
                         else: # interior loop not possible
-							pass
+                            pass
                     else:
-						pass
+                        pass
             for d in range(i+4, j+1): # iterate over all rightmost pairs with base i (beginning of subsequence)
                 Qs[i,j] += Qb[i,d]
                 dQs[i,j] += dQb[i,d]

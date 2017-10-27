@@ -114,11 +114,9 @@ def main():
         k += 1
     print param
 
-sequence = ''.join(random.choice('AUGC') for _ in range(501))
-g_base_pair = gm.generator(sequence, 5.69, 6., 4.09, 500)
 profile = cProfile.Profile()
 profile.enable()
-print z.linear(g_base_pair, 1., -7.09, 500)
+main()
 profile.disable()
 profile.print_stats()
 profile.dump_stats("%s.statout" % sys.argv[1])
