@@ -72,36 +72,25 @@ def mccaskill_linear(g_base_pair, g_loop, g_stack, N):
     
     # base pair probability
     bp_prob = np.zeros((N,N))
-    bp_prob_s = np.zeros((N,N))
+    bp_prob_s = np.zeros((N,N)) # storage matrix
     # need to start with outside pairs and work way in
     full_part = Q[0, N-1]
     for i in range(N): # index for first base
         for j in range(N-1, i+3, -1): # index for second base
             q_bound_ij = Qb[i,j]
+            # storage matrix entry
+            for k in range(j+1, N):
+                q_bound_ik = Qb[i,k]
+                if q_bound_ik:
+                    bp_prob_s[i,j] += np.exp(-invRT * (g_base_pair[i,k] + g_loop)) * bp_prob[i,k] / q_bound_ik
             if i == 0 and j == N-1:
                 bp_prob[i,j] = q_bound_ij / full_part
-                for k in range(j+1, N):
-                    q_bound_ik = Qb[i,k]
-                    if q_bound_ik:
-                        bp_prob_s[i,j] += np.exp(-invRT * (g_base_pair[i,k] + g_loop)) * bp_prob[i,k] / q_bound_ik
             elif i == 0:
                 bp_prob[i,j] = q_bound_ij * Q[j+1, N-1] / full_part
-                for k in range(j+1, N):
-                    q_bound_ik = Qb[i,k]
-                    if q_bound_ik:
-                        bp_prob_s[i,j] += np.exp(-invRT * (g_base_pair[i,k] + g_loop)) * bp_prob[i,k] / q_bound_ik
             elif j == N-1:
                 bp_prob[i,j] = Q[0, i-1] * q_bound_ij / full_part
-                for k in range(j+1, N):
-                    q_bound_ik = Qb[i,k]
-                    if q_bound_ik:
-                        bp_prob_s[i,j] += np.exp(-invRT * (g_base_pair[i,k] + g_loop)) * bp_prob[i,k] / q_bound_ik
             else:
                 bp_prob[i,j] = Q[0, i-1] * q_bound_ij * Q[j+1, N-1] / full_part # if base-pair is not enclosed
-                for k in range(j+1, N):
-                    q_bound_ik = Qb[i,k]
-                    if q_bound_ik:
-                        bp_prob_s[i,j] += np.exp(-invRT * (g_base_pair[i,k] + g_loop)) * bp_prob[i,k] / q_bound_ik
                 for l in range(i):
                     bp_prob[i,j] += q_bound_ij * bp_prob_s[l,j]
                 if Qb[i-1, j+1]: # stacked pairs
@@ -167,8 +156,8 @@ def mccaskill_linear_derivatives(g_base_pair, g_loop, g_stack, N, g):
                     else: # no interior loop possible (one or both base pairs can't form)
                         pass#Q_bound[i,j] += 0.0
             for d in range(i+4, j+1):
-                Qs[i,j] += Q_bound[d,j]
-                dQs[i,j] += dQ_bound[d,j]
+                Qs[i,j] += Q_bound[i,d]
+                dQs[i,j] += dQ_bound[i,d]
             # Q recursion
             Q[i,j] = 1.0
             for d in range(i,j-3): # iterating over all possible rightmost pairs
@@ -179,11 +168,10 @@ def mccaskill_linear_derivatives(g_base_pair, g_loop, g_stack, N, g):
                 else:
                     Q[i,j] += Q[i,d-1]*qs_dj
                     dQ[i,j] += dQ[i,d-1]*qs_dj + Q[i,d-1]*dQs[d,j]
-    
     # base pair probability
     bp_prob = np.zeros((N,N))
     deriv_bp_prob = np.zeros((N,N))
-    bp_prob_s = np.zeros((N,N))
+    bp_prob_s = np.zeros((N,N)) # storage matrix
     deriv_bp_prob_s = np.zeros((N,N))
 
     full_part = Q[0, N-1]
@@ -195,77 +183,48 @@ def mccaskill_linear_derivatives(g_base_pair, g_loop, g_stack, N, g):
     for i in range(N): # index for first base
         for j in range(N-1, i+3, -1): # index for second base
             q_bound_ij = Q_bound[i,j]
-            q_0i = Q[0, i-1]
-            try:
-                q_jN = Q[j+1, N-1]
-            except:
-                q_jN = 0.
+            # storage matrix entry
+            for k in range(j+1, N):
+                q_bound_ik = Q_bound[i,k]
+                if q_bound_ik:
+                    term = np.exp(-invRT * (g_base_pair[i,k] + g_loop)) * bp_prob[i,k] / q_bound_ik
+                    bp_prob_s[i,j] += term
+                    deriv_bp_prob_s[i,j] += np.exp(-invRT * (g_base_pair[i,k] + g_loop)) * deriv_bp_prob[i,k] / q_bound_ik
+                    deriv_bp_prob_s[i,j] += -term * dQ_bound[i,k] / q_bound_ik
+                    if g == g_base_pair[i,k]:
+                        deriv_bp_prob_s[i,j] += -invRT * term
             if i == 0 and j == N-1:
-                bp_prob[i,j] = q_bound_ij / full_part
-                deriv_bp_prob[i,j] = (dQ_bound[0, N-1] - bp_prob[i,j] * deriv_full_part) / full_part
-                for k in range(j+1, N):
-                    q_bound_ik = Q_bound[i,k]
-                    if q_bound_ik:
-                        exp_neg_invRT_bp_ik = np.exp(-invRT * (g_base_pair[i,k]))
-                        term = exp_neg_invRT_bp_ik * exp_neg_gloop_over_RT * bp_prob[i,k] / q_bound_ik
-                        bp_prob_s[i,j] += term
-                        deriv_bp_prob_s[i,j] += (exp_neg_invRT_bp_ik * exp_neg_gloop_over_RT * deriv_bp_prob[i,k] - (term * dQ_bound[i,k])) / q_bound_ik
-                        if g == g_base_pair[i,k]:
-                            deriv_bp_prob_s[i,j] += -invRT * term
+                term = q_bound_ij / full_part
+                bp_prob[i,j] = term
+                deriv_bp_prob[i,j] = (dQ_bound[i,j] - term * deriv_full_part) / full_part
             elif i == 0:
-                bp_prob[i,j] = q_bound_ij * q_jN / full_part
-                deriv_bp_prob[i,j] = ( dQ_bound[0, j] * q_jN + q_bound_ij * dQ[j+1, N-1] - bp_prob[i,j] * deriv_full_part ) / full_part
-                for k in range(j+1, N):
-                    q_bound_ik = Q_bound[i,k]
-                    if q_bound_ik:
-                        exp_neg_invRT_bp_ik = np.exp(-invRT * (g_base_pair[i,k]))
-                        term = exp_neg_invRT_bp_ik * exp_neg_gloop_over_RT * bp_prob[i,k] / q_bound_ik
-                        bp_prob_s[i,j] += term
-                        deriv_bp_prob_s[i,j] += (exp_neg_invRT_bp_ik * exp_neg_gloop_over_RT * deriv_bp_prob[i,k] - (term * dQ_bound[i,k])) / q_bound_ik
-                        if g == g_base_pair[i,k]:
-                            deriv_bp_prob_s[i,j] += -invRT * term
+                term = q_bound_ij * Q[j+1, N-1] / full_part
+                bp_prob[i,j] = term
+                deriv_bp_prob[i,j] = (dQ_bound[i,j] * Q[j+1, N-1] + q_bound_ij * dQ[j+1, N-1]) / full_part
+                deriv_bp_prob[i,j] += -term * deriv_full_part / full_part
             elif j == N-1:
-                bp_prob[i,j] = q_0i * q_bound_ij / full_part
-                deriv_bp_prob[i,j] = ( dQ[0, i-1] * q_bound_ij + q_0i * dQ_bound[i, N-1] - bp_prob[i,j] * deriv_full_part ) / full_part
-                for k in range(j+1, N):
-                    q_bound_ik = Q_bound[i,k]
-                    if q_bound_ik:
-                        exp_neg_invRT_bp_ik = np.exp(-invRT * (g_base_pair[i,k]))
-                        term = exp_neg_invRT_bp_ik * exp_neg_gloop_over_RT * bp_prob[i,k] / q_bound_ik
-                        bp_prob_s[i,j] += term
-                        deriv_bp_prob_s[i,j] += (exp_neg_invRT_bp_ik * exp_neg_gloop_over_RT * deriv_bp_prob[i,k] - (term * dQ_bound[i,k])) / q_bound_ik
-                        if g == g_base_pair[i,k]:
-                            deriv_bp_prob_s[i,j] += -invRT * term
+                term = Q[0, i-1] * q_bound_ij / full_part
+                bp_prob[i,j] = term
+                deriv_bp_prob[i,j] = (dQ[0, i-1] * q_bound_ij + Q[0, i-1] * dQ_bound[i,j]) / full_part
+                deriv_bp_prob[i,j] += -term * deriv_full_part / full_part
             else:
-                bp_prob[i,j] = q_0i * q_bound_ij * q_jN / full_part # if base-pair is not enclosed
-                deriv_bp_prob[i,j] = ( dQ[0, i-1] * q_bound_ij * q_jN + q_0i * dQ_bound[i,j] * q_jN + q_0i * q_bound_ij * dQ[j+1, N-1]) / full_part
-                deriv_bp_prob[i,j] += -bp_prob[i,j] * deriv_full_part / full_part
-                for k in range(j+1, N):
-                    q_bound_ik = Q_bound[i,k]
-                    if q_bound_ik:
-                        exp_neg_invRT_bp_ik = np.exp(-invRT * (g_base_pair[i,k]))
-                        term = exp_neg_invRT_bp_ik * exp_neg_gloop_over_RT * bp_prob[i,k] / q_bound_ik
-                        bp_prob_s[i,j] += term
-                        deriv_bp_prob_s[i,j] += (exp_neg_invRT_bp_ik * exp_neg_gloop_over_RT * deriv_bp_prob[i,k] - (term * dQ_bound[i,k])) / q_bound_ik
-                        if g == g_base_pair[i,k]:
-                            deriv_bp_prob_s[i,j] += -invRT * term
-                d_q_bound_ij = dQ_bound[i,j]
+                term = Q[0, i-1] * q_bound_ij * Q[j+1, N-1] / full_part # if base-pair is not enclosed
+                bp_prob[i,j] = term
+                deriv_bp_prob[i,j] = (dQ[0, i-1] * q_bound_ij * Q[j+1, N-1] + Q[0, i-1] * dQ_bound[i,j] * Q[j+1, N-1] + Q[0, i-1] * q_bound_ij * dQ[j+1, N-1])/ full_part
+                deriv_bp_prob[i,j] += -term * deriv_full_part / full_part
                 for l in range(i):
                     bp_prob[i,j] += q_bound_ij * bp_prob_s[l,j]
-                    deriv_bp_prob[i,j] += d_q_bound_ij * bp_prob_s[l,j] + q_bound_ij * deriv_bp_prob_s[l,j]
-                q_bound_stacked = Q_bound[i-1, j+1]
-                if q_bound_stacked: # stacked pairs
-                    q_bound_stacked = Q_bound[i-1, j+1]
-                    exp_neg_invRT_bp = np.exp(-invRT * (g_base_pair[i-1, j+1]))
-                    term = -q_bound_ij * exp_neg_invRT_bp * bp_prob[i-1, j+1] * (exp_neg_gloop_over_RT - exp_neg_gstack_over_RT) / q_bound_stacked
+                    deriv_bp_prob[i,j] += dQ_bound[i,j] * bp_prob_s[l,j] + q_bound_ij * deriv_bp_prob_s[l,j]
+                if Q_bound[i-1, j+1]: # stacked pairs
+                    term = -q_bound_ij * np.exp(-invRT * g_base_pair[i-1, j+1]) * bp_prob[i-1, j+1] * (exp_neg_gloop_over_RT - exp_neg_gstack_over_RT) / Q_bound[i-1, j+1]
                     bp_prob[i,j] += term
-                    deriv_bp_prob[i,j] += (-d_q_bound_ij * exp_neg_invRT_bp * bp_prob[i-1, j+1] * (exp_neg_gloop_over_RT - exp_neg_gstack_over_RT)) / q_bound_stacked
-                    deriv_bp_prob[i,j] += -q_bound_ij * exp_neg_invRT_bp * deriv_bp_prob[i-1, j+1] * (exp_neg_gloop_over_RT - exp_neg_gstack_over_RT) / q_bound_stacked
-                    deriv_bp_prob[i,j] += - term * dQ_bound[i-1, j+1] / q_bound_stacked
+                    deriv_bp_prob[i,j] += (-dQ_bound[i,j] * np.exp(-invRT * g_base_pair[i-1, j+1]) * bp_prob[i-1, j+1] * (exp_neg_gloop_over_RT - exp_neg_gstack_over_RT)) / Q_bound[i-1, j+1]
+                    deriv_bp_prob[i,j] += -q_bound_ij * np.exp(-invRT * g_base_pair[i-1, j+1]) * deriv_bp_prob[i-1, j+1] * (exp_neg_gloop_over_RT - exp_neg_gstack_over_RT) / Q_bound[i-1, j+1]
+                    deriv_bp_prob[i,j] += -term * dQ_bound[i-1, j+1] / Q_bound[i-1, j+1]
                     if g == g_base_pair[i-1, j+1]:
                         deriv_bp_prob[i,j] += -invRT * term
                     elif g == g_stack:
-                        deriv_bp_prob[i,j] += -invRT * q_bound_ij * exp_neg_invRT_bp * exp_neg_gstack_over_RT * deriv_bp_prob[i-1, j+1] / q_bound_stacked
+                        deriv_bp_prob[i,j] += -invRT * q_bound_ij * np.exp(-invRT * g_base_pair[i-1, j+1]) * bp_prob[i-1, j+1] * exp_neg_gstack_over_RT / Q_bound[i-1, j+1]
                 #for k in range(i): #indexing outside bases
                 #    for l in range(j+1, N):
                 #        if k == i-1 and l == j+1:
@@ -287,7 +246,11 @@ def mccaskill_linear_derivatives(g_base_pair, g_loop, g_stack, N, g):
                 #                deriv_bp_prob[i,j] += bp_kl * q_bound_ij * dQ_int * inv_qb_kl
                 #            deriv_bp_prob[i,j] += -bp_kl * q_bound_ij * q_int_kl * dQ_bound[k,l] * inv_qb_kl / 2
     return deriv_bp_prob
-
+'''-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------'''
+'''-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------'''
+'''-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------'''
+'''-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------'''
+'''-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------'''
 # FIXME need to edit below this point XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX
 
 def flag_linear(base1, base2, g_base_pair, g_loop, g_stack, N):

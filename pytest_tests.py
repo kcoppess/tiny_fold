@@ -18,7 +18,7 @@ circs = ["AAAAA-",
          "AAACCCUUUCCC-"
 ]
 
-tol = 1e-8
+tol = 1e-11
 
 def partition_value_test(seq):
     g_base_pair = gm.generator(seq, p.energies[0], p.energies[1], p.energies[2], len(seq))
@@ -64,6 +64,7 @@ def bpp_value_test(seq):
     g_base_pair = gm.generator(seq, p.energies[0], p.energies[1], p.energies[2], len(seq))
     return bpp.mccaskill_linear(g_base_pair, p.g_loop, p.energies[3], len(seq))
 def bpp_deriv_test_AU(seq):
+    print seq
     g_base_pair = gm.generator(seq, p.energies[0], p.energies[1], p.energies[2], len(seq))
     return bpp.mccaskill_linear_derivatives(g_base_pair, p.g_loop, p.energies[3], len(seq), p.energies[0])
 def bpp_deriv_test_GU(seq):
@@ -81,7 +82,7 @@ def almost_equal(x, y, epsilon ):
     return np.linalg.norm(x - y) < epsilon 
 
 def test_partition():
-    for seq, val in zip(seqs, [1,1.000012479163,1.000185778783,1.0021716139156,1.02330274599]):
+    for seq, val in zip(seqs, [1,1.0000124791631115,1.0001857787828816,1.0021716139156089,1.0233027459871049]):
         assert(almost_equal(partition_value_test(seq), val, tol))
 
 def test_log_partition():
@@ -133,27 +134,27 @@ def test_bpp():
     aaccccguu[0,8] = 0.020625537448534667
     aaccccguu[1,7] = 0.022553953705591098
     aaccccguu[1,8] = 1.2197252009936157e-05
-    aaccccguu[2,6] = 0.022593773148001303
+    aaccccguu[2,6] = 0.022593777679140784
     for seq, val in zip(seqs, [aaaaa, aaaau, gcccc, accccgu, aaccccguu]):
         assert(almost_equal(bpp_value_test(seq), val, tol))
-'''
+
 def test_bpp_derivs_AU():
     aaaaa = np.zeros((5,5))
     aaaau = np.zeros((5,5))
-    aaaau[0,4] = 1.2479007383961551e-05
+    aaaau[0,4] = -2.1061933146135372e-05
     gcccc = np.zeros((5,5))
-    gcccc[0,4] = 0.00018574427553608532
     accccgu = np.zeros((7,7))
-    accccgu[0,6] = 0.0019815320102396245
-    accccgu[1,5] = 0.0021544561056377051
+    accccgu[0,6] = -0.0033378228091143717
+    accccgu[1,5] = -0.0033162276547285432
     aaccccguu = np.zeros((9,9))
-    aaccccguu[0,7] = 1.2197252009936157e-05
-    aaccccguu[0,8] = 0.020625537448534667
-    aaccccguu[1,7] = 0.022553953705591098
-    aaccccguu[1,8] = 1.2197252009936157e-05
-    aaccccguu[2,6] = 0.022593773148001303
+    aaccccguu[0,7] = -1.9697223269939332e-05
+    aaccccguu[0,8] = -0.068099385089383582
+    aaccccguu[1,7] = -0.07121356568856102
+    aaccccguu[1,8] = -1.9697223269939332e-05
+    aaccccguu[2,6] = -0.070752825849043341
     for seq, val in zip(seqs, [aaaaa, aaaau, gcccc, accccgu, aaccccguu]):
         assert(almost_equal(bpp_deriv_test_AU(seq), val, tol))
+'''
 def test_bpp():
     aaaaa = np.zeros((5,5))
     aaaau = np.zeros((5,5))
