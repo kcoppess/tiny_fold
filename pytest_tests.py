@@ -71,9 +71,11 @@ def bpp_deriv_test_GU(seq):
     g_base_pair = gm.generator(seq, p.energies[0], p.energies[1], p.energies[2], len(seq))
     return bpp.mccaskill_linear_derivatives(g_base_pair, p.g_loop, p.energies[3], len(seq), p.energies[1])
 def bpp_deriv_test_GC(seq):
+    print seq
     g_base_pair = gm.generator(seq, p.energies[0], p.energies[1], p.energies[2], len(seq))
     return bpp.mccaskill_linear_derivatives(g_base_pair, p.g_loop, p.energies[3], len(seq), p.energies[2])
 def bpp_deriv_test_stack(seq):
+    print seq
     g_base_pair = gm.generator(seq, p.energies[0], p.energies[1], p.energies[2], len(seq))
     return bpp.mccaskill_linear_derivatives(g_base_pair, p.g_loop, p.energies[3], len(seq), p.energies[3])
 
@@ -154,41 +156,40 @@ def test_bpp_derivs_AU():
     aaccccguu[2,6] = -0.070752825849043341
     for seq, val in zip(seqs, [aaaaa, aaaau, gcccc, accccgu, aaccccguu]):
         assert(almost_equal(bpp_deriv_test_AU(seq), val, tol))
+
+def test_bpp_deriv_GC():
+    aaaaa = np.zeros((5,5))
+    aaaau = np.zeros((5,5))
+    gcccc = np.zeros((5,5))
+    gcccc[0,4] = -0.00031344285229964632
+    accccgu = np.zeros((7,7))
+    accccgu[0,6] = -0.0033162276547285428
+    accccgu[1,5] = -0.0036284787194924687
+    aaccccguu = np.zeros((9,9))
+    aaccccguu[0,7] = 4.6130625989703884e-07
+    aaccccguu[0,8] = -0.033786243034938615
+    aaccccguu[1,7] = -0.036967505426624511
+    aaccccguu[1,8] = 4.6130625989703884e-07
+    aaccccguu[2,6] = -0.037272417173290488
+    for seq, val in zip(seqs, [aaaaa, aaaau, gcccc, accccgu, aaccccguu]):
+        assert(almost_equal(bpp_deriv_test_GC(seq), val, tol))
+
+def test_bpp_deriv_stack():
+    aaaaa = np.zeros((5,5))
+    aaaau = np.zeros((5,5))
+    gcccc = np.zeros((5,5))
+    accccgu = np.zeros((7,7))
+    accccgu[0,6] = -0.0033168476362080901
+    accccgu[1,5] = -0.0033162729345412763
+    aaccccguu = np.zeros((9,9))
+    aaccccguu[0,7] = 8.8575204834229921e-07
+    aaccccguu[0,8] = -0.067866373951630518
+    aaccccguu[1,7] = -0.070981138779790301
+    aaccccguu[1,8] = 8.8575204834229921e-07
+    aaccccguu[2,6] = -0.070759614540283317
+    for seq, val in zip(seqs, [aaaaa, aaaau, gcccc, accccgu, aaccccguu]):
+        assert(almost_equal(bpp_deriv_test_stack(seq), val, tol))
 '''
-def test_bpp():
-    aaaaa = np.zeros((5,5))
-    aaaau = np.zeros((5,5))
-    aaaau[0,4] = 1.2479007383961551e-05
-    gcccc = np.zeros((5,5))
-    gcccc[0,4] = 0.00018574427553608532
-    accccgu = np.zeros((7,7))
-    accccgu[0,6] = 0.0019815320102396245
-    accccgu[1,5] = 0.0021544561056377051
-    aaccccguu = np.zeros((9,9))
-    aaccccguu[0,7] = 1.2197252009936157e-05
-    aaccccguu[0,8] = 0.020625537448534667
-    aaccccguu[1,7] = 0.022553953705591098
-    aaccccguu[1,8] = 1.2197252009936157e-05
-    aaccccguu[2,6] = 0.022593773148001303
-    for seq, val in zip(seqs, [aaaaa, aaaau, gcccc, accccgu, aaccccguu]):
-        assert(almost_equal(bpp_value_test(seq), val, tol))
-def test_bpp():
-    aaaaa = np.zeros((5,5))
-    aaaau = np.zeros((5,5))
-    aaaau[0,4] = 1.2479007383961551e-05
-    gcccc = np.zeros((5,5))
-    gcccc[0,4] = 0.00018574427553608532
-    accccgu = np.zeros((7,7))
-    accccgu[0,6] = 0.0019815320102396245
-    accccgu[1,5] = 0.0021544561056377051
-    aaccccguu = np.zeros((9,9))
-    aaccccguu[0,7] = 1.2197252009936157e-05
-    aaccccguu[0,8] = 0.020625537448534667
-    aaccccguu[1,7] = 0.022553953705591098
-    aaccccguu[1,8] = 1.2197252009936157e-05
-    aaccccguu[2,6] = 0.022593773148001303
-    for seq, val in zip(seqs, [aaaaa, aaaau, gcccc, accccgu, aaccccguu]):
-        assert(almost_equal(bpp_value_test(seq), val, tol))
 def test_bpp():
     aaaaa = np.zeros((5,5))
     aaaau = np.zeros((5,5))
