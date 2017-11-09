@@ -18,7 +18,7 @@ energies = np.array([5.69, 6., 4.09, -7.09])
 
 '''-------COST FUNCTION PARAMETERS-----'''
 # weight on prior term
-w = 1.
+w = 1e-5
 
 # priors
 priors = np.array([5.69, 6., 4.09, -7.09])

@@ -1,4 +1,4 @@
-# modified: Septemeber 22, 2017
+# modified: October 30, 2017
 # using Adam method
 import numpy as np
 import partition as z
@@ -64,7 +64,7 @@ def main():
 
     #actual_param = [5.69, 6., 4.09, 1., -7.09]
     #training_data, sequences = rsg.training_generator(50, actual_param, 10, 21)
-    num_training_examples = 2
+    num_training_examples = 50
     training_data = [] # storing bpp for closing stem of hairpin for each input sequence
     g_loop = p.g_loop
     sequences = fil.Sequence[:num_training_examples] #p.training_sequences[:10]
@@ -85,10 +85,7 @@ def main():
     K = []
     iteration_param = [] # list of updated parameters after each iteration
 
-    #while not convergence(param, prev_param) and k < 10000:
-    
-    #Fixed k =>10
-    while k <= 10:
+    while not convergence(param, prev_param) and k < 2000:
         random.shuffle(index) # randomly shuffling indexes for each pass through the data
         if k % 100 == 0:
             print "Gradient " + str(grad)
@@ -112,7 +109,9 @@ def main():
         K.append(k)
         iteration_param.append(list(param))
         k += 1
+    print iteration_param
     print param
+    
 
 profile = cProfile.Profile()
 profile.enable()

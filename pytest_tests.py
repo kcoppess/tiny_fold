@@ -5,6 +5,7 @@ import partition as z
 import g_matrix as gm
 import base_pair_probabilities as bpp
 import numpy as np
+import partition_gradient as gradz
 
 seqs = [ "AAAAA",
          "AAAAU",
@@ -26,19 +27,27 @@ def partition_value_test(seq):
 
 def partition_deriv_test_AU(seq):
     g_base_pair = gm.generator(seq, p.energies[0], p.energies[1], p.energies[2], len(seq))
-    return z.linear_derivatives(g_base_pair, p.g_loop, p.energies[3], len(seq), p.energies[0]) # g_base_pair, g_loop, g_stack, N, g
+    grad = gradz.linear_derivatives(g_base_pair, p.energies, p.g_loop, len(seq))
+    return grad[0]
+    #return z.linear_derivatives(g_base_pair, p.g_loop, p.energies[3], len(seq), p.energies[0]) # g_base_pair, g_loop, g_stack, N, g
 
 def partition_deriv_test_GU(seq):
     g_base_pair = gm.generator(seq, p.energies[0], p.energies[1], p.energies[2], len(seq))
-    return z.linear_derivatives(g_base_pair, p.g_loop, p.energies[3], len(seq), p.energies[1]) # g_base_pair, g_loop, g_stack, N, g
+    grad = gradz.linear_derivatives(g_base_pair, p.energies, p.g_loop, len(seq))
+    return grad[1]
+    #return z.linear_derivatives(g_base_pair, p.g_loop, p.energies[3], len(seq), p.energies[1]) # g_base_pair, g_loop, g_stack, N, g
 
 def partition_deriv_test_GC(seq):
     g_base_pair = gm.generator(seq, p.energies[0], p.energies[1], p.energies[2], len(seq))
-    return z.linear_derivatives(g_base_pair, p.g_loop, p.energies[3], len(seq), p.energies[2]) # g_base_pair, g_loop, g_stack, N, g
+    grad = gradz.linear_derivatives(g_base_pair, p.energies, p.g_loop, len(seq))
+    return grad[2]
+    #return z.linear_derivatives(g_base_pair, p.g_loop, p.energies[3], len(seq), p.energies[2]) # g_base_pair, g_loop, g_stack, N, g
 
 def partition_deriv_test_stack(seq):
     g_base_pair = gm.generator(seq, p.energies[0], p.energies[1], p.energies[2], len(seq))
-    return z.linear_derivatives(g_base_pair, p.g_loop, p.energies[3], len(seq), p.energies[3]) # g_base_pair, g_loop, g_stack, N, g
+    grad = gradz.linear_derivatives(g_base_pair, p.energies, p.g_loop, len(seq))
+    return grad[3]
+    #return z.linear_derivatives(g_base_pair, p.g_loop, p.energies[3], len(seq), p.energies[3]) # g_base_pair, g_loop, g_stack, N, g
 
 def log_partition_value_test(seq):
     g_base_pair = gm.generator(seq, p.energies[0], p.energies[1], p.energies[2], len(seq))
