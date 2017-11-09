@@ -132,6 +132,66 @@ def linear_derivatives(g_base_pair, g_loop, g_stack, N, g): # g : parameter that
                     dQ[i,j] += dQ[i,d-1]*Qs[d,j] + Q[i,d-1]*dQs[d,j]
     return dQ[0,N-1]
 
+def linear_gradient(g_base_pair, param, g_loop, N): # g : parameter that differentiating wrt
+    g_stack = param[3]
+    # initializing general partition matrix
+    Q = np.zeros((N,N))
+    for m in range(N):
+        Q[m,m-1] = 1.0
+    
+    dQ = np.zeros((N,N,4)) # stores gradients
+
+    # initializing bound partition matrix
+    Qb = np.zeros((N,N))
+    dQb = np.zeros((N,N,4)) # stores bound derivatives
+
+    Qs = np.zeros((N,N))
+    dQs = np.zeros((N,N,4))
+
+    # LINEAR SEQUENCE calculation of partition function and its derivative
+    for l in range(1,N+1): # iterating over all subsequence lengths
+        for i in range(0,N-l+1): # iterating over all starting positions for subsequences
+            j = i + l - 1 # ending position for subsequence
+            # Qb recursion
+            energy_index, = np.where(param == g_base_pair[i,j])
+            if j-i > 3 and g_base_pair[i,j]: # if possible hairpin: at least 4 positions apart and able to form a base pair
+                q_hairpin_ij = Q_hairpin(g_base_pair[i,j], g_loop)
+                Qb[i,j] = q_hairpin_ij
+                dQb[i,j, energy_index] = -q_hairpin_ij * invRT #(Q_hairpin(g_base_pair[i,j] + h, g_loop) - q_hairpin_ij)/h
+            else: # no hairpin possible
+                pass
+            for d in range(i+1,j-4): # iterate over all possible rightmost pairs
+                for e in range(d+4,j): # i < d < e < j and d,e must be at least 4 positions apart
+                    interior_loop_type = '' #g_interior = 0.0
+                    if g_base_pair[i,j] and g_base_pair[d,e]: # possible for both base pairs to form
+                        if i+1 == d and e+1 == j: # if stacked
+                            interior_loop_type = 's' #g_interior = g_base_pair[i,j] + g_stack # avoids double counting free energy from base pair formation
+                        else: # if loop
+                            interior_loop_type = 'l' #g_interior = g_base_pair[i,j] + g_loop
+                        q_int_ij = Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type)
+                        Qb[i,j] += Qb[d,e] * q_int_ij
+                        dQ_int = np.zeros(4) # derivative of Q_interior
+                        dQ_int[energy_index] = -q_int_ij * invRT #(Q_interior(g_base_pair[i,j] + h, g_loop, g_stack, interior_loop_type) - q_int_ij)/h
+                        if interior_loop_type == 's':
+                            dQ_int[3] = -q_int_ij * invRT #(Q_interior(g_base_pair[i,j], g_loop, g_stack + h, interior_loop_type) - q_int_ij)/h
+                        dQb[i,j] += dQ_int * Qb[d,e] + q_int_ij * dQb[d,e]
+                    else: # no interior loop possible (one or both base pairs can't form)
+                        pass
+            # Qs recursion
+            for d in range(i+4, j+1): # iterate over all rightmost pairs with base i (beginning of subsequence)
+                Qs[i,j] += Qb[i,d]
+                dQs[i,j] += dQb[i,d]
+            # Q recursion
+            Q[i,j] = 1.0
+            for d in range(i,j-3): # iterating over all possible rightmost pairs
+                if d == 0: # to deal with issue of wrapping around in the last iteration
+                    Q[i,j] += Qs[d,j]
+                    dQ[i,j] += dQs[d,j]
+                else:
+                    Q[i,j] += Q[i,d-1]*Qs[d,j]
+                    dQ[i,j] += dQ[i,d-1]*Qs[d,j] + Q[i,d-1]*dQs[d,j]
+    return dQ[0,N-1]
+
 def linear_derivatives_over_val(g_base_pair, g_loop, g_stack, N, g): # g : parameter that differentiating wrt
     # initializing general partition matrix
     Q = np.zeros((N,N))
