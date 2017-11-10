@@ -1,4 +1,4 @@
-# modified: October 30, 2017
+# modified: November 10, 2017
 # using Adam method
 import numpy as np
 import partition as z
@@ -6,7 +6,6 @@ import partition as z
 import base_pair_probabilities as bpp
 import parameters as p
 import random
-import g_matrix as gm
 import filtering as fil
 import sys
 
@@ -18,16 +17,15 @@ g_loop = p.g_loop
 def gradient(param, sequence, basepairprob, bp):
     deriv_sum_sq = np.zeros(4)
     M = len(sequence)
-    g_base_pair = gm.generator(sequence, param[0], param[1], param[2], M)
     
-    bpp_matrix = bpp.mccaskill_linear(g_base_pair, g_loop, param[3], M)
+    bpp_matrix = bpp.mccaskill_linear(param, sequence, M)
     residual = basepairprob - bpp_matrix[bp[0], bp[1]]
-    for k in range(4):
-        deriv_bpp_matrix = bpp.mccaskill_linear_derivatives(g_base_pair, g_loop, param[3], M, param[k])
-        deriv_sum_sq[k] = (-2) * residual * deriv_bpp_matrix[bp[0], bp[1]]
+    deriv_bpp_matrix = bpp.mccaskill_linear_gradient(param, sequence, M)
+    deriv_sum_sq = (-2) * residual * deriv_bpp_matrix[bp[0], bp[1]]
     prior = p.priors - param
     return deriv_sum_sq - 2 * p.w * prior #NOTE second term: prior term to deal with vanishing gradient
 
+# NOTE will need to fix the function calls if wanting to use this section XXX
 #def gradient(energy_param, sequence, partition):
 #    N = len(sequence)
 #

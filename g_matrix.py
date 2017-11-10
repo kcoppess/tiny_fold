@@ -1,5 +1,9 @@
 # generates free-energy matrix for an input sequence
 # matrix used in several files
+#
+# free_energy_pair(b1, b2, g_AU, g_UG, g_GC)
+# generator(sequence, g_au, g_ug, g_gc, N)
+#
 import numpy as np
 
 # b1, b2: bases

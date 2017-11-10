@@ -1,14 +1,29 @@
-# last modified: September 14, 2017
+# last modified: November 10, 2017
+# 
 # toy model to calculate partition function for a given sequence
-# based off of NUPACK pseudo-code XXX N^3 XXX given in Dirks & Pierce 2003
+# based off of NUPACK pseudo-code given in Dirks & Pierce 2003
 # NOTE IGNORING MULTILOOPS
+#
+# Q_hairpin(g_BP)
+# Q_interior(g_BP, g_stack, loop_type)
+#
+# functions with N^3 algorithm:
+#  linear(param, sequence, N)
+#  linear_gradient(param, sequence, N, g)
+#  linear_derivatives(param, sequence, N, g)
+#  linear_derivatives_over_val(param, sequence, N, g)
+#  circular(param, sequence, N)
+#  circular_gradient(param, sequence, N)
+#  circular_derivatives(param, sequence, N, g)
+#  circular_derivatives_over_val(param, sequence, N, g)
+#
+# analytical derivatives
+#
 import numpy as np
 import parameters as p
 import g_matrix as gm
 
 '''all free energy parameters in kcal/mol'''
-
-h = p.h # differentiation step size
 
 R = p.R # kcal/K/mol universal gas constant
 T = p.T # K temperature (standard state - room temp)

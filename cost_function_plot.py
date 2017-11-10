@@ -1,8 +1,9 @@
+# heat map for cost function
+# plotting as function of g_AU and g_stack for MS2 data
 import numpy as np
 import matplotlib.pyplot as plt
 import parameters as p
 import base_pair_probabilities as bpp
-import g_matrix as gm
 import filtering as fil
  
 num_training_examples = 50
@@ -19,10 +20,9 @@ def cost(param): # param = [g_AU, g_stack]
 
     for i in range(len(training_data)):
         M = len(sequences[i])
-        g_base_pair = gm.generator(sequences[i], param[0], p.energies[1], p.energies[2], M)
     
         bp = fil.closing_bp_indices[i]
-        bpp_matrix = bpp.mccaskill_linear(g_base_pair, g_loop, param[1], M)
+        bpp_matrix = bpp.mccaskill_linear(param, sequences[i], M)
         residual = training_data[i] - bpp_matrix[bp[0], bp[1]]
         sum_sq += residual**2
     return sum_sq

@@ -2,7 +2,6 @@ import pytest
 import parameters as p
 import log_partition as log_z
 import partition as z
-import g_matrix as gm
 import base_pair_probabilities as bpp
 import numpy as np
 
@@ -44,8 +43,7 @@ def partition_deriv_test_stack(seq):
     #return z.linear_derivatives(g_base_pair, p.g_loop, p.energies[3], len(seq), p.energies[3]) # g_base_pair, g_loop, g_stack, N, g
 
 def log_partition_value_test(seq):
-    g_base_pair = gm.generator(seq, p.energies[0], p.energies[1], p.energies[2], len(seq))
-    return log_z.linear(g_base_pair, p.g_loop, p.energies[3], len(seq))
+    return log_z.linear(p.energies, seq, len(seq)) #g_base_pair, p.g_loop, p.energies[3], len(seq))
 
 def circ_partition_value_test(seq):
     return z.circular(p.energies, seq, len(seq)-1) #g_base_pair, p.g_loop, p.energies[3], len(seq))

@@ -3,7 +3,6 @@
 import numpy as np
 import base_pair_probabilities as bpp
 import parameters as p
-import g_matrix as gm
 import scipy.optimize as so
 import time
 import filtering as fil
@@ -29,10 +28,9 @@ def cost(param):
     sum_sq = 0.
     for m in range(num_training_examples):
         M = len(sequences[m])
-        g_base_pair = gm.generator(sequences[m], param[0], param[1], param[2], M)
 
         bp = fil.closing_bp_indices[m]
-        bpp_matrix = bpp.mccaskill_linear(g_base_pair, g_loop, param[3], M)
+        bpp_matrix = bpp.mccaskill_linear(param, sequences[m], M)
         sq_residual = (training_data[m] - bpp_matrix[bp[0], bp[1]])**2
         sum_sq += sq_residual
     prior = p.priors - param
@@ -46,7 +44,7 @@ def cost(param):
             M = M - 1 # ignoring the '-' part of sequence
         g_base_pair = gm.generator(sequences[m], param[0], param[1], param[2], M)
         
-        residual = bppm - bpp.mccaskill_linear(g_base_pair, g_loop, param[3], M)
+        residual = bppm - bpp.mccaskill_linear(param, sequences[m], M)
         square_residual = residual**2
         sum_sq += square_residual.sum()
     prior = p.priors - param
@@ -59,14 +57,12 @@ def cost_gradient(param):
     deriv_sum_sq = np.zeros(4)
     for m in range(num_training_examples):
         M = len(sequences[m])
-        g_base_pair = gm.generator(sequences[m], param[0], param[1], param[2], M)
         
         bp = fil.closing_bp_indices[m]
-        bpp_matrix = bpp.mccaskill_linear(g_base_pair, g_loop, param[3], M)
+        bpp_matrix = bpp.mccaskill_linear(param, sequences[m], M)
         residual = training_data[m] - bpp_matrix[bp[0], bp[1]]
-        for k in range(4):
-            deriv_bpp_matrix = bpp.mccaskill_linear_derivatives(g_base_pair, g_loop, param[3], M, param[k])
-            deriv_sum_sq[k] += (-2) * residual * deriv_bpp_matrix[bp[0], bp[1]]
+        deriv_bpp_matrix = bpp.mccaskill_linear_gradient(param, sequences[m], M, param[k])
+        deriv_sum_sq += (-2) * residual * deriv_bpp_matrix[bp[0], bp[1]]
     prior = p.priors - param
     return deriv_sum_sq - 2 * p.w * prior #NOTE second term: prior term to deal with vanishing gradient
 '''
@@ -78,12 +74,9 @@ def cost_gradient(param):
         if sequences[m][-1] == '-':
             M = M - 1 # ignoring the '-' part of sequence
         
-        g_base_pair = gm.generator(sequences[m], param[0], param[1], param[2], M)
-        
-        residual = bppm - bpp.mccaskill_linear(g_base_pair, g_loop, param[3], M)
-        for k in range(4):
-            square_residual_deriv = (-2) * residual * bpp.mccaskill_linear_derivatives(g_base_pair, g_loop, param[3], M, param[k])
-            deriv_sum_sq[k] += square_residual_deriv.sum()
+        residual = bppm - bpp.mccaskill_linear(param, sequences[m], M)
+        square_residual_deriv = (-2) * residual * bpp.mccaskill_linear_gradient(param, sequences[m], M, param[k])
+        deriv_sum_sq += square_residual_deriv.sum()
     prior = p.priors - param
     return deriv_sum_sq - 2 * p.w * prior #NOTE second term: prior term to deal with vanishing gradient
 '''

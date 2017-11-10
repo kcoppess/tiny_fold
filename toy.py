@@ -12,7 +12,6 @@ import log_partition as log_z
 import train_toy as train
 import scipy.optimize as so
 import parameters as p
-import g_matrix as gm
 
 '''all free energy parameters in kcal/mol'''
 
@@ -27,14 +26,10 @@ def predicted_logpartition(energy_param, g_loop, test_sequences):
             is_circular = True
             N = N - 1 # ignoring the '-' part of sequence
         
-        # initializing base-pair free energy matrix
-        # IGNORING STERIC EFFECTS
-        g_base_pair = gm.generator(sequence, energy_param[0], energy_param[1], energy_param[2], N)
-        
         if is_circular:
-            predicted[i] = log_z.circular(g_base_pair, g_loop, energy_param[3], N) # g_base_pair, g_loop, g_stack, N
+            predicted[i] = log_z.circular(energy_param, sequence, N)
         else:
-            predicted[i] = log_z.linear(g_base_pair, g_loop, energy_param[3], N) # g_base_pair, g_loop, g_stack, N
+            predicted[i] = log_z.linear(energy_param, sequence, N) # g_base_pair, g_loop, g_stack, N
     return predicted
 
 def frac_resid(energy_param, g_loop, sequences):

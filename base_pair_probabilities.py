@@ -1,5 +1,22 @@
-# last modified: October 9, 2017
+# last modified: November 10, 2017
 # calculates basepair probability for particular base-pair in input RNA sequence
+# algorithm modified from McCaskill 1990
+# 
+# Q_hairpin(g_BP)
+# Q_interior(g_BP, g_stack, loop_type)
+#
+# functions w/ N^3 algorithm: (analytical derivatives)
+#  mccaskill_linear(param, sequence, N)
+#  mccaskill_linear_gradient(param, sequence, N)
+#  mccaskill_linear_derivatives(param, sequence, N, g)
+#
+# functions w/ N^4 algorithm:
+#  flag_linear(base1, base2, g_base_pair, g_loop, g_stack, N)
+#  flag_linear_derivatives(base1, base2, g_base_pair, g_loop, g_stack, N, g)
+#  mccaskill_circular(g_base_pair, g_loop, g_stack, N)
+#  flag_circular(base1, base2, g_base_pair, g_loop, g_stack, N)
+#  flag_circular_derivatives(base1, base2, g_base_pair, g_loop, g_stack, N, g)
+#  
 import numpy as np
 import parameters as p
 import g_matrix as gm
