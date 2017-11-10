@@ -5,7 +5,6 @@ import partition as z
 import g_matrix as gm
 import base_pair_probabilities as bpp
 import numpy as np
-import partition_gradient as gradz
 
 seqs = [ "AAAAA",
          "AAAAU",
@@ -22,30 +21,25 @@ circs = ["AAAAA-",
 tol = 1e-11
 
 def partition_value_test(seq):
-    g_base_pair = gm.generator(seq, p.energies[0], p.energies[1], p.energies[2], len(seq))
-    return z.linear(g_base_pair, p.g_loop, p.energies[3], len(seq))
+    return z.linear(p.energies, seq, len(seq)) #g_base_pair, p.g_loop, p.energies[3], len(seq))
 
 def partition_deriv_test_AU(seq):
-    g_base_pair = gm.generator(seq, p.energies[0], p.energies[1], p.energies[2], len(seq))
-    grad = gradz.linear_derivatives(g_base_pair, p.energies, p.g_loop, len(seq))
+    grad = z.linear_gradient(p.energies, seq, len(seq))
     return grad[0]
     #return z.linear_derivatives(g_base_pair, p.g_loop, p.energies[3], len(seq), p.energies[0]) # g_base_pair, g_loop, g_stack, N, g
 
 def partition_deriv_test_GU(seq):
-    g_base_pair = gm.generator(seq, p.energies[0], p.energies[1], p.energies[2], len(seq))
-    grad = gradz.linear_derivatives(g_base_pair, p.energies, p.g_loop, len(seq))
+    grad = z.linear_gradient(p.energies, seq, len(seq))
     return grad[1]
     #return z.linear_derivatives(g_base_pair, p.g_loop, p.energies[3], len(seq), p.energies[1]) # g_base_pair, g_loop, g_stack, N, g
 
 def partition_deriv_test_GC(seq):
-    g_base_pair = gm.generator(seq, p.energies[0], p.energies[1], p.energies[2], len(seq))
-    grad = gradz.linear_derivatives(g_base_pair, p.energies, p.g_loop, len(seq))
+    grad = z.linear_gradient(p.energies, seq, len(seq))
     return grad[2]
     #return z.linear_derivatives(g_base_pair, p.g_loop, p.energies[3], len(seq), p.energies[2]) # g_base_pair, g_loop, g_stack, N, g
 
 def partition_deriv_test_stack(seq):
-    g_base_pair = gm.generator(seq, p.energies[0], p.energies[1], p.energies[2], len(seq))
-    grad = gradz.linear_derivatives(g_base_pair, p.energies, p.g_loop, len(seq))
+    grad = z.linear_gradient(p.energies, seq, len(seq))
     return grad[3]
     #return z.linear_derivatives(g_base_pair, p.g_loop, p.energies[3], len(seq), p.energies[3]) # g_base_pair, g_loop, g_stack, N, g
 
@@ -54,39 +48,39 @@ def log_partition_value_test(seq):
     return log_z.linear(g_base_pair, p.g_loop, p.energies[3], len(seq))
 
 def circ_partition_value_test(seq):
-    g_base_pair = gm.generator(seq, p.energies[0], p.energies[1], p.energies[2], len(seq)-1)
-    return z.circular(g_base_pair, p.g_loop, p.energies[3], len(seq)-1)
+    return z.circular(p.energies, seq, len(seq)-1) #g_base_pair, p.g_loop, p.energies[3], len(seq))
 def circ_partition_deriv_test_AU(seq):
-    g_base_pair = gm.generator(seq, p.energies[0], p.energies[1], p.energies[2], len(seq)-1)
-    return z.circular_derivatives(g_base_pair, p.g_loop, p.energies[3], len(seq)-1, p.energies[0])
+    grad = z.circular_gradient(p.energies, seq, len(seq)-1)
+    return grad[0]
+    #return z.circular_derivatives(p.energies, seq, len(seq)-1, p.energies[0])
 def circ_partition_deriv_test_GU(seq):
-    g_base_pair = gm.generator(seq, p.energies[0], p.energies[1], p.energies[2], len(seq)-1)
-    return z.circular_derivatives(g_base_pair, p.g_loop, p.energies[3], len(seq)-1, p.energies[1])
+    grad = z.circular_gradient(p.energies, seq, len(seq)-1)
+    return grad[1]
+    #return z.circular_derivatives(p.energies, seq, len(seq)-1, p.energies[1])
 def circ_partition_deriv_test_GC(seq):
-    g_base_pair = gm.generator(seq, p.energies[0], p.energies[1], p.energies[2], len(seq)-1)
-    return z.circular_derivatives(g_base_pair, p.g_loop, p.energies[3], len(seq)-1, p.energies[2])
+    grad = z.circular_gradient(p.energies, seq, len(seq)-1)
+    return grad[2]
+    #return z.circular_derivatives(p.energies, seq, len(seq)-1, p.energies[2])
 def circ_partition_deriv_test_stack(seq):
-    g_base_pair = gm.generator(seq, p.energies[0], p.energies[1], p.energies[2], len(seq)-1)
-    return z.circular_derivatives(g_base_pair, p.g_loop, p.energies[3], len(seq)-1, p.energies[3])
+    grad = z.circular_gradient(p.energies, seq, len(seq)-1)
+    return grad[3]
+    #return z.circular_derivatives(p.energies, seq, len(seq)-1, p.energies[3])
 
 def bpp_value_test(seq):
-    g_base_pair = gm.generator(seq, p.energies[0], p.energies[1], p.energies[2], len(seq))
-    return bpp.mccaskill_linear(g_base_pair, p.g_loop, p.energies[3], len(seq))
+    return bpp.mccaskill_linear(p.energies, seq, len(seq)) #g_base_pair, p.g_loop, p.energies[3], len(seq))
 def bpp_deriv_test_AU(seq):
-    print seq
-    g_base_pair = gm.generator(seq, p.energies[0], p.energies[1], p.energies[2], len(seq))
-    return bpp.mccaskill_linear_derivatives(g_base_pair, p.g_loop, p.energies[3], len(seq), p.energies[0])
+    grad = bpp.mccaskill_linear_gradient(p.energies, seq, len(seq))
+    return grad[:, :, 0]
+    #return bpp.mccaskill_linear_derivatives(p.energies, seq, len(seq), p.energies[0])
 def bpp_deriv_test_GU(seq):
-    g_base_pair = gm.generator(seq, p.energies[0], p.energies[1], p.energies[2], len(seq))
-    return bpp.mccaskill_linear_derivatives(g_base_pair, p.g_loop, p.energies[3], len(seq), p.energies[1])
+    grad = bpp.mccaskill_linear_gradient(p.energies, seq, len(seq))
+    return grad[:, :, 1]
 def bpp_deriv_test_GC(seq):
-    print seq
-    g_base_pair = gm.generator(seq, p.energies[0], p.energies[1], p.energies[2], len(seq))
-    return bpp.mccaskill_linear_derivatives(g_base_pair, p.g_loop, p.energies[3], len(seq), p.energies[2])
+    grad = bpp.mccaskill_linear_gradient(p.energies, seq, len(seq))
+    return grad[:, :, 2]
 def bpp_deriv_test_stack(seq):
-    print seq
-    g_base_pair = gm.generator(seq, p.energies[0], p.energies[1], p.energies[2], len(seq))
-    return bpp.mccaskill_linear_derivatives(g_base_pair, p.g_loop, p.energies[3], len(seq), p.energies[3])
+    grad = bpp.mccaskill_linear_gradient(p.energies, seq, len(seq))
+    return grad[:, :, 3]
 
 def almost_equal(x, y, epsilon ):
     print x-y

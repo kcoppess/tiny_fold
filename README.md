@@ -5,7 +5,7 @@
 ### free energy parameters, priors used in cost function, learning parameters for Adam method, training/testing data for testing code
 
 ## partition.py
-### holds function definitions for calculating the partition function and its derivative for both linear and circular RNA sequences
+### holds function definitions for calculating the partition function and gradient (and individual derivatives) for both linear and circular RNA sequences
 ### recursion modified from NUPACK n^4 algorithm in Dirks and Pierce 2003
 
 ## log_partition.py

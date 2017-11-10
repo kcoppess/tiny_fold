@@ -1,8 +1,8 @@
 # last modified: October 9, 2017
-# calculates base-pair probability for particular base-pair in input RNA sequence
+# calculates basepair probability for particular base-pair in input RNA sequence
 import numpy as np
 import parameters as p
-
+import g_matrix as gm
 '''all free energy parameters in kcal/mol'''
 
 h = p.h # differentiation step size
@@ -10,14 +10,15 @@ h = p.h # differentiation step size
 R = p.R # kcal/K/mol universal gas constant
 T = p.T # K temperature (standard state - room temp)
 invRT = 1.0/(R*T)
+g_loop = p.g_loop
 
 # partition contribution from hairpin closed with base pair BP
-def Q_hairpin(g_BP, g_loop):
+def Q_hairpin(g_BP):
     return np.exp(-invRT*(g_BP + g_loop))
 
 # partition contribution from interior loop closed with base pair BP
 # avoids double counting free energy from base pair formation
-def Q_interior(g_BP, g_loop, g_stack, loop_type):
+def Q_interior(g_BP, g_stack, loop_type):
     if loop_type == 's':  # if stacked base pair
         return np.exp(-(g_BP + g_stack)*invRT)
     elif loop_type == 'l':  # if loop
@@ -28,7 +29,10 @@ def Q_interior(g_BP, g_loop, g_stack, loop_type):
 
 # required that base1 < base2
 # generates matrix of base-pair probabilities
-def mccaskill_linear(g_base_pair, g_loop, g_stack, N):
+def mccaskill_linear(param, sequence, N):
+    g_stack = param[3]
+    g_base_pair = gm.generator(sequence, param[0], param[1], param[2], N)
+    
     exp_neg_gloop_over_RT = np.exp(-g_loop*invRT)
     exp_neg_gstack_over_RT = np.exp(-g_stack*invRT)
     
@@ -48,7 +52,7 @@ def mccaskill_linear(g_base_pair, g_loop, g_stack, N):
             j = i + l - 1 # ending position for subsequence
             # Qb recursion
             if j-i > 3 and g_base_pair[i,j]: # if possible hairpin: at least 4 positions apart and able to form a base pair
-                Qb[i,j] = Q_hairpin(g_base_pair[i,j], g_loop)
+                Qb[i,j] = Q_hairpin(g_base_pair[i,j])
             else: # no hairpin possible
                 Qb[i,j] = 0.0
             for d in range(i+1,j-4): # iterate over all possible rightmost pairs
@@ -59,7 +63,7 @@ def mccaskill_linear(g_base_pair, g_loop, g_stack, N):
                             interior_loop_type = 's'
                         else: # if loop
                             interior_loop_type = 'l'
-                        Qb[i,j] += Qb[d,e] * Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type)
+                        Qb[i,j] += Qb[d,e] * Q_interior(g_base_pair[i,j], g_stack, interior_loop_type)
                     else: # no interior loop possible (one or both base pairs can't form)
                         pass #Qb[i,j] += 0.0
             # Qs recursion
@@ -98,20 +102,14 @@ def mccaskill_linear(g_base_pair, g_loop, g_stack, N):
                     bp_prob[i,j] += q_bound_ij * bp_prob_s[l,j]
                 if Qb[i-1, j+1]: # stacked pairs
                     bp_prob[i,j] += -q_bound_ij * np.exp(-invRT * g_base_pair[i-1, j+1]) * bp_prob[i-1, j+1] * (exp_neg_gloop_over_RT - exp_neg_gstack_over_RT) / Qb[i-1, j+1]
-                #for k in range(i): #indexing outside bases
-                #    for l in range(j+1, N):
-                #        if k == i-1 and l == j+1:
-                #            interior_loop_type = 's'
-                #        else:
-                #            interior_loop_type = 'l'
-                #        q_bound_kl = Qb[k,l]
-                #        if q_bound_kl:
-                #            bp_prob[i,j] += bp_prob[k,l] * q_bound_ij * Q_interior(g_base_pair[k,l], g_loop, g_stack, interior_loop_type) / q_bound_kl
     return bp_prob
 
 # required that base1 < base2
 # generates matrix of base-pair probabilities derivatives w.r.t. energy parameter g
-def mccaskill_linear_derivatives(g_base_pair, g_loop, g_stack, N, g):
+def mccaskill_linear_derivatives(param, sequence, N, g):
+    g_stack = param[3]
+    g_base_pair = gm.generator(sequence, param[0], param[1], param[2], N)
+
     # initializing general partition matrix
     Q = np.zeros((N,N))
     for m in range(N):
@@ -132,7 +130,7 @@ def mccaskill_linear_derivatives(g_base_pair, g_loop, g_stack, N, g):
             j = i + l - 1 # ending position for subsequence
             # Qb recursion
             if j-i > 3 and g_base_pair[i,j]: # if possible hairpin: at least 4 positions apart and able to form a base pair
-                q_hairpin_ij = Q_hairpin(g_base_pair[i,j], g_loop)
+                q_hairpin_ij = Q_hairpin(g_base_pair[i,j])
                 Q_bound[i,j] = q_hairpin_ij
                 if g == g_base_pair[i,j]:  # differentiating wrt current base pair parameter
                     dQ_bound[i,j] = -q_hairpin_ij * invRT #(Q_hairpin(g_base_pair[i,j] + h, g_loop) - Q_hairpin(g_base_pair[i,j], g_loop))/h
@@ -148,7 +146,7 @@ def mccaskill_linear_derivatives(g_base_pair, g_loop, g_stack, N, g):
                         else: # if loop
                             interior_loop_type = 'l' #g_interior = g_base_pair[i,j] + g_loop
                         q_bound_de = Q_bound[d,e]
-                        q_int_ij = Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type)
+                        q_int_ij = Q_interior(g_base_pair[i,j], g_stack, interior_loop_type)
                         Q_bound[i,j] += q_bound_de * q_int_ij
                         dQ_int = 0.0 # derivative of Q_interior
                         if g == g_base_pair[i,j]:
@@ -242,26 +240,143 @@ def mccaskill_linear_derivatives(g_base_pair, g_loop, g_stack, N, g):
                         deriv_bp_prob[i,j] += -invRT * term
                     elif g == g_stack:
                         deriv_bp_prob[i,j] += -invRT * q_bound_ij * exp_neg_invRT_gbp_ij * bpp_ij * exp_neg_gstack_over_RT / q_denom
-                #for k in range(i): #indexing outside bases
-                #    for l in range(j+1, N):
-                #        if k == i-1 and l == j+1:
-                #            interior_loop_type = 's'
-                #        else:
-                #            interior_loop_type = 'l'
-                #        bp_kl = bp_prob[k,l]
-                #        if Q_bound[k,l]:
-                #            inv_qb_kl = 1.0 / Q_bound[k,l]
-                #            q_int_kl = Q_interior(g_base_pair[k,l], g_loop, g_stack, interior_loop_type)
-                #            bp_prob[i,j] += bp_kl * q_bound_ij * q_int_kl * inv_qb_kl
-                #            deriv_bp_prob[i,j] += deriv_bp_prob[k,l] * q_bound_ij * q_int_kl * inv_qb_kl
-                #            deriv_bp_prob[i,j] += bp_kl * dQ_bound[i,j] * q_int_kl * inv_qb_kl
-                #            if g == g_base_pair[k,l]:
-                #                dQ_int = -q_int_kl * invRT #(Q_interior(g_base_pair[k,l] + h, g_loop, g_stack, interior_loop_type) - q_int_kl) / h
-                #                deriv_bp_prob[i,j] += bp_kl * q_bound_ij * dQ_int * inv_qb_kl
-                #            elif g == g_stack:
-                #                dQ_int = -q_int_kl * invRT #(Q_interior(g_base_pair[k,l], g_loop, g_stack + h, interior_loop_type) - q_int_kl) / h
-                #                deriv_bp_prob[i,j] += bp_kl * q_bound_ij * dQ_int * inv_qb_kl
-                #            deriv_bp_prob[i,j] += -bp_kl * q_bound_ij * q_int_kl * dQ_bound[k,l] * inv_qb_kl / 2
+    return deriv_bp_prob
+
+def mccaskill_linear_gradient(param, sequence, N):
+    g_stack = param[3]
+    g_base_pair = gm.generator(sequence, param[0], param[1], param[2], N)
+
+    # initializing general partition matrix
+    Q = np.zeros((N,N))
+    for m in range(N):
+        Q[m,m-1] = 1.0
+    
+    dQ = np.zeros((N,N,4)) # stores gradients
+
+    # initializing bound partition matrix
+    Qb = np.zeros((N,N))
+    dQb = np.zeros((N,N,4)) # stores bound derivatives
+
+    Qs = np.zeros((N,N))
+    dQs = np.zeros((N,N,4))
+
+    # LINEAR SEQUENCE calculation of partition function and its derivative
+    for l in range(1,N+1): # iterating over all subsequence lengths
+        for i in range(0,N-l+1): # iterating over all starting positions for subsequences
+            j = i + l - 1 # ending position for subsequence
+            # Qb recursion
+            energy_index, = np.where(param == g_base_pair[i,j])
+            if j-i > 3 and g_base_pair[i,j]: # if possible hairpin: at least 4 positions apart and able to form a base pair
+                q_hairpin_ij = Q_hairpin(g_base_pair[i,j])
+                Qb[i,j] = q_hairpin_ij
+                dQb[i,j, energy_index] = -q_hairpin_ij * invRT #(Q_hairpin(g_base_pair[i,j] + h, g_loop) - q_hairpin_ij)/h
+            else: # no hairpin possible
+                pass
+            for d in range(i+1,j-4): # iterate over all possible rightmost pairs
+                for e in range(d+4,j): # i < d < e < j and d,e must be at least 4 positions apart
+                    interior_loop_type = '' #g_interior = 0.0
+                    if g_base_pair[i,j] and g_base_pair[d,e]: # possible for both base pairs to form
+                        if i+1 == d and e+1 == j: # if stacked
+                            interior_loop_type = 's' #g_interior = g_base_pair[i,j] + g_stack # avoids double counting free energy from base pair formation
+                        else: # if loop
+                            interior_loop_type = 'l' #g_interior = g_base_pair[i,j] + g_loop
+                        q_int_ij = Q_interior(g_base_pair[i,j], g_stack, interior_loop_type)
+                        Qb[i,j] += Qb[d,e] * q_int_ij
+                        dQ_int = np.zeros(4) # derivative of Q_interior
+                        dQ_int[energy_index] = -q_int_ij * invRT #(Q_interior(g_base_pair[i,j] + h, g_loop, g_stack, interior_loop_type) - q_int_ij)/h
+                        if interior_loop_type == 's':
+                            dQ_int[3] = -q_int_ij * invRT #(Q_interior(g_base_pair[i,j], g_loop, g_stack + h, interior_loop_type) - q_int_ij)/h
+                        dQb[i,j] += dQ_int * Qb[d,e] + q_int_ij * dQb[d,e]
+                    else: # no interior loop possible (one or both base pairs can't form)
+                        pass
+            # Qs recursion
+            for d in range(i+4, j+1): # iterate over all rightmost pairs with base i (beginning of subsequence)
+                Qs[i,j] += Qb[i,d]
+                dQs[i,j] += dQb[i,d]
+            # Q recursion
+            Q[i,j] = 1.0
+            for d in range(i,j-3): # iterating over all possible rightmost pairs
+                if d == 0: # to deal with issue of wrapping around in the last iteration
+                    Q[i,j] += Qs[d,j]
+                    dQ[i,j] += dQs[d,j]
+                else:
+                    Q[i,j] += Q[i,d-1]*Qs[d,j]
+                    dQ[i,j] += dQ[i,d-1]*Qs[d,j] + Q[i,d-1]*dQs[d,j]
+    
+    # base pair probability
+    bp_prob = np.zeros((N,N))
+    deriv_bp_prob = np.zeros((N,N,4))
+    bp_prob_s = np.zeros((N,N)) # storage matrix
+    deriv_bp_prob_s = np.zeros((N,N,4))
+
+    full_part = Q[0, N-1]
+    deriv_full_part = dQ[0, N-1]
+
+    exp_neg_gloop_over_RT = np.exp(-g_loop*invRT)
+    exp_neg_gstack_over_RT = np.exp(-g_stack*invRT)
+    # need to start with outside pairs and work way in
+    for i in range(N): # index for first base
+        for j in range(N-1, i+3, -1): # index for second base
+            energy_index, = np.where(param == g_base_pair[i,j])
+            
+            q_bound_ij = Qb[i,j]
+            d_q_bound_ij = dQb[i,j]
+            q_0i = Q[0, i-1]
+            try:
+                q_jN = Q[j+1, N-1]
+            except:
+                q_jN = 0.
+
+            # storage matrix entry
+            for k in range(j+1, N):
+                ik_energy_index, = np.where(param == g_base_pair[i,k])
+                q_bound_ik = Qb[i,k]
+                if q_bound_ik:
+                    exp_neg_invRT_gbp_ik = np.exp(-invRT * g_base_pair[i,k])
+
+                    term = exp_neg_invRT_gbp_ik * exp_neg_gloop_over_RT * bp_prob[i,k] / q_bound_ik
+                    bp_prob_s[i,j] += term
+                    deriv_bp_prob_s[i,j] += exp_neg_invRT_gbp_ik * exp_neg_gloop_over_RT * deriv_bp_prob[i,k] / q_bound_ik
+                    deriv_bp_prob_s[i,j] += -term * dQb[i,k] / q_bound_ik
+                    deriv_bp_prob_s[i,j,ik_energy_index] += -invRT * term
+            
+            if i == 0 and j == N-1:
+                term = q_bound_ij / full_part
+                bp_prob[i,j] = term
+                deriv_bp_prob[i,j] = (d_q_bound_ij - term * deriv_full_part) / full_part
+            elif i == 0:
+                term = q_bound_ij * q_jN / full_part
+                bp_prob[i,j] = term
+                deriv_bp_prob[i,j] = (d_q_bound_ij * q_jN + q_bound_ij * dQ[j+1, N-1]) / full_part
+                deriv_bp_prob[i,j] += -term * deriv_full_part / full_part
+            elif j == N-1:
+                term = q_0i * q_bound_ij / full_part
+                bp_prob[i,j] = term
+                deriv_bp_prob[i,j] = (dQ[0, i-1] * q_bound_ij + q_0i * d_q_bound_ij) / full_part
+                deriv_bp_prob[i,j] += -term * deriv_full_part / full_part
+            else:
+                term = q_0i * q_bound_ij * q_jN / full_part # if base-pair is not enclosed
+                bp_prob[i,j] = term
+                deriv_bp_prob[i,j] = (dQ[0, i-1] * q_bound_ij * q_jN + q_0i * d_q_bound_ij * q_jN + q_0i * q_bound_ij * dQ[j+1, N-1])/ full_part
+                deriv_bp_prob[i,j] += -term * deriv_full_part / full_part
+                for l in range(i):
+                    bpp_s_lj = bp_prob_s[l,j]
+                    bp_prob[i,j] += q_bound_ij * bpp_s_lj
+                    deriv_bp_prob[i,j] += d_q_bound_ij * bpp_s_lj + q_bound_ij * deriv_bp_prob_s[l,j]
+                if Qb[i-1, j+1]: # stacked pairs
+                    bpp_ij = bp_prob[i-1, j+1]
+                    q_denom = Qb[i-1, j+1]
+                    exp_neg_invRT_gbp_ij = np.exp(-invRT * g_base_pair[i-1, j+1])
+
+                    term = -q_bound_ij * exp_neg_invRT_gbp_ij * bpp_ij * (exp_neg_gloop_over_RT - exp_neg_gstack_over_RT) / q_denom
+                    bp_prob[i,j] += term
+                    deriv_bp_prob[i,j] += (-d_q_bound_ij * exp_neg_invRT_gbp_ij * bpp_ij * (exp_neg_gloop_over_RT - exp_neg_gstack_over_RT)) / q_denom
+                    deriv_bp_prob[i,j] += -q_bound_ij * exp_neg_invRT_gbp_ij * deriv_bp_prob[i-1, j+1] * (exp_neg_gloop_over_RT - exp_neg_gstack_over_RT) / q_denom
+                    deriv_bp_prob[i,j] += -term * dQb[i-1, j+1] / q_denom
+                    
+                    adj_energy_index, = np.where(param == g_base_pair[i-1, j+1])
+                    deriv_bp_prob[i,j,adj_energy_index] += -invRT * term
+                    deriv_bp_prob[i,j,3] += -invRT * q_bound_ij * exp_neg_invRT_gbp_ij * bpp_ij * exp_neg_gstack_over_RT / q_denom
     return deriv_bp_prob
 '''-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------'''
 '''-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------'''
@@ -287,7 +402,7 @@ def flag_linear(base1, base2, g_base_pair, g_loop, g_stack, N):
                     dependent = True
                 else:
                     dependent = False
-                Qb[i][j].append((Q_hairpin(g_base_pair[i,j], g_loop), dependent))
+                Qb[i][j].append((Q_hairpin(g_base_pair[i,j]), dependent))
             for d in range(i+1,j-4): # iterate over all possible rightmost pairs
                 for e in range(d+4,j): # i < d < e < j and d,e must be at least 4 positions apart
                     interior_loop_type = ''
@@ -301,7 +416,7 @@ def flag_linear(base1, base2, g_base_pair, g_loop, g_stack, N):
                                 dependent = True
                             else:
                                 dependent = False
-                            Qb[i][j].append((Qb[d][e][k][0] * Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type), dependent))
+                            Qb[i][j].append((Qb[d][e][k][0] * Q_interior(g_base_pair[i,j], g_stack, interior_loop_type), dependent))
             # Q recursion
             for d in range(i,j-3): # iterating over all possible rightmost pairs
                 for e in range(d+4,j+1):
@@ -346,10 +461,10 @@ def flag_linear_derivatives(base1, base2, g_base_pair, g_loop, g_stack, N, g):
                     dependent = True
                 else:
                     dependent = False
-                q_hairpin_ij = Q_hairpin(g_base_pair[i,j], g_loop)
+                q_hairpin_ij = Q_hairpin(g_base_pair[i,j])
                 Qb[i][j].append((q_hairpin_ij, dependent))
                 if g == g_base_pair[i,j]:
-                    dQb[i][j].append(((Q_hairpin(g_base_pair[i,j] + h, g_loop) - q_hairpin_ij)/h, dependent))
+                    dQb[i][j].append(((Q_hairpin(g_base_pair[i,j] + h) - q_hairpin_ij)/h, dependent))
                 else:
                     dQb[i][j].append((0., dependent))
             for d in range(i+1,j-4): # iterate over all possible rightmost pairs
@@ -365,13 +480,13 @@ def flag_linear_derivatives(base1, base2, g_base_pair, g_loop, g_stack, N, g):
                                 dependent = True
                             else:
                                 dependent = False
-                            Qb[i][j].append((Qb[d][e][k][0] * Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type), dependent))
+                            Qb[i][j].append((Qb[d][e][k][0] * Q_interior(g_base_pair[i,j], g_stack, interior_loop_type), dependent))
                             dQ_int = 0.
                             if g == g_base_pair[i,j]:
-                                dQ_int = (Q_interior(g_base_pair[i,j] + h, g_loop, g_stack, interior_loop_type) - Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type))/h
+                                dQ_int = (Q_interior(g_base_pair[i,j] + h, g_stack, interior_loop_type) - Q_interior(g_base_pair[i,j], g_stack, interior_loop_type))/h
                             elif g == g_stack:
-                                dQ_int = (Q_interior(g_base_pair[i,j], g_loop, g_stack + h, interior_loop_type) - Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type))/h
-                            dQb[i][j].append(((dQ_int * Qb[d][e][k][0] + Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type) * dQb[d][e][k][0]), dependent))
+                                dQ_int = (Q_interior(g_base_pair[i,j], g_stack + h, interior_loop_type) - Q_interior(g_base_pair[i,j], g_stack, interior_loop_type))/h
+                            dQb[i][j].append(((dQ_int * Qb[d][e][k][0] + Q_interior(g_base_pair[i,j], g_stack, interior_loop_type) * dQb[d][e][k][0]), dependent))
             # Q recursion
             for d in range(i,j-3): # iterating over all possible rightmost pairs
                 for e in range(d+4,j+1):
@@ -413,7 +528,7 @@ def mccaskill_circular(g_base_pair, g_loop, g_stack, N):
         for i in range(0, N-l+1): # start of subsequence
             j = i + l - 1
             if j - i > 3 and (i + N) - j > 3 and g_base_pair[i,j]: # checking that base pair can form and bases are at least 4 positions apart on both sides
-                Q_bound[i,j] = Q_hairpin(g_base_pair[i,j], g_loop)
+                Q_bound[i,j] = Q_hairpin(g_base_pair[i,j])
             else:  # hairpin not possible
                 Q_bound[i,j] = 0.0
             for d in range(i+1,j-4):
@@ -425,7 +540,7 @@ def mccaskill_circular(g_base_pair, g_loop, g_stack, N):
                                 interior_loop_type = 's' #g_interior = g_base_pair[i,j] + g_stack
                             else: #loop
                                 interior_loop_type = 'l' #g_interior = g_base_pair[i,j] + g_loop
-                            Q_bound[i,j] += Q_bound[d,e] * Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type)
+                            Q_bound[i,j] += Q_bound[d,e] * Q_interior(g_base_pair[i,j], g_stack, interior_loop_type)
                         else: # interior loop not possible
                             Q_bound[i,j] += 0.0
                     else:
@@ -482,7 +597,7 @@ def mccaskill_circular(g_base_pair, g_loop, g_stack, N):
                     else:
                         interior_loop_type = 'l'
                     if Q_bound[k,l]:
-                        bp_prob[i,j] += bp_prob[k,l] * Q_bound[i,j] * Q_interior(g_base_pair[k,l], g_loop, g_stack, interior_loop_type) / Q_bound[k,l]
+                        bp_prob[i,j] += bp_prob[k,l] * Q_bound[i,j] * Q_interior(g_base_pair[k,l], g_stack, interior_loop_type) / Q_bound[k,l]
     #print Q[0][N-1]
     return bp_prob
 
@@ -504,7 +619,7 @@ def flag_circular(base1, base2, g_base_pair, g_loop, g_stack, N):
                     dependent = True
                 else:
                     dependent = False
-                Qb[i][j].append((Q_hairpin(g_base_pair[i,j], g_loop), dependent))
+                Qb[i][j].append((Q_hairpin(g_base_pair[i,j]), dependent))
             for d in range(i+1,j-4): # iterate over all possible rightmost pairs
                 for e in range(d+4,j): # i < d < e < j and d,e must be at least 4 positions apart
                     interior_loop_type = ''
@@ -519,7 +634,7 @@ def flag_circular(base1, base2, g_base_pair, g_loop, g_stack, N):
                                     dependent = True
                                 else:
                                     dependent = False
-                                Qb[i][j].append(((Qb[d][e][k][0] * Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type)), dependent))
+                                Qb[i][j].append(((Qb[d][e][k][0] * Q_interior(g_base_pair[i,j], g_stack, interior_loop_type)), dependent))
             # Q recursion
             if i == 0 and j == N-1: # closing chain
                 for d in range(0, N-4):
@@ -600,9 +715,9 @@ def flag_circular_derivatives(base1, base2, g_base_pair, g_loop, g_stack, N, g):
                     dependent = True
                 else:
                     dependent = False
-                Qb[i][j].append((Q_hairpin(g_base_pair[i,j], g_loop), dependent))
+                Qb[i][j].append((Q_hairpin(g_base_pair[i,j]), dependent))
                 if g == g_base_pair[i,j]:
-                    dQb[i][j].append(((Q_hairpin(g_base_pair[i,j] + h, g_loop) - Q_hairpin(g_base_pair[i,j], g_loop))/h, dependent))
+                    dQb[i][j].append(((Q_hairpin(g_base_pair[i,j] + h) - Q_hairpin(g_base_pair[i,j]))/h, dependent))
                 else:
                     dQb[i][j].append((0., dependent))
             for d in range(i+1,j-4): # iterate over all possible rightmost pairs
@@ -619,13 +734,13 @@ def flag_circular_derivatives(base1, base2, g_base_pair, g_loop, g_stack, N, g):
                                     dependent = True
                                 else:
                                     dependent = False
-                                Qb[i][j].append(((Qb[d][e][k][0] * Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type)), dependent))
+                                Qb[i][j].append(((Qb[d][e][k][0] * Q_interior(g_base_pair[i,j], g_stack, interior_loop_type)), dependent))
                                 dQ_int = 0.
                                 if g == g_base_pair[i,j]:
-                                    dQ_int = (Q_interior(g_base_pair[i,j] + h, g_loop, g_stack, interior_loop_type) - Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type))/h
+                                    dQ_int = (Q_interior(g_base_pair[i,j] + h, g_stack, interior_loop_type) - Q_interior(g_base_pair[i,j], g_stack, interior_loop_type))/h
                                 elif g == g_stack:
-                                    dQ_int = (Q_interior(g_base_pair[i,j], g_loop, g_stack + h, interior_loop_type) - Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type))/h
-                                dQb[i][j].append(((dQ_int * Qb[d][e][k][0] + Q_interior(g_base_pair[i,j], g_loop, g_stack, interior_loop_type) * dQb[d][e][k][0]), dependent))
+                                    dQ_int = (Q_interior(g_base_pair[i,j], g_stack + h, interior_loop_type) - Q_interior(g_base_pair[i,j], g_stack, interior_loop_type))/h
+                                dQb[i][j].append(((dQ_int * Qb[d][e][k][0] + Q_interior(g_base_pair[i,j], g_stack, interior_loop_type) * dQb[d][e][k][0]), dependent))
             # Q recursion
             if i == 0 and j == N-1: # closing chain
                 for d in range(0, N-4):
