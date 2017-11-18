@@ -23,8 +23,8 @@ def partition_value_test(seq):
     return z.linear(p.energies, seq, len(seq)) #g_base_pair, p.g_loop, p.energies[3], len(seq))
 
 def partition_deriv_test_AU(seq):
-    grad = z.linear_gradient(p.energies, seq, len(seq))
-    return grad[0]
+    grad = z.linear_derivatives(p.energies, seq, len(seq), 5.69)
+    return grad
     #return z.linear_derivatives(g_base_pair, p.g_loop, p.energies[3], len(seq), p.energies[0]) # g_base_pair, g_loop, g_stack, N, g
 
 def partition_deriv_test_GU(seq):

@@ -57,35 +57,35 @@ def linear(param, sequence, N):
     Qb = np.zeros((N,N))
     Qs = np.zeros((N,N))    
     # calculation of partition function
-    for l in range(1,N+1): # iterating over all subsequence lengths
-        for i in range(0,N-l+1): # iterating over all starting positions for subsequences
-            j = i + l - 1 # ending position for subsequence
+    for ll in range(1,N+1): # iterating over all subsequence lengths
+        for ii in range(0,N-ll+1): # iterating over all starting positions for subsequences
+            jj = ii + ll - 1 # ending position for subsequence
             # Qb recursion
-            if j-i > 3 and g_base_pair[i,j]: # if possible hairpin: at least 4 positions apart and able to form a base pair
-                Qb[i,j] = Q_hairpin(g_base_pair[i,j])
+            if jj-ii > 3 and g_base_pair[ii,jj]: # if possible hairpin: at least 4 positions apart and able to form a base pair
+                Qb[ii,jj] = Q_hairpin(g_base_pair[ii,jj])
             else: # no hairpin possible
-                Qb[i,j] = 0.0
-            for d in range(i+1,j-4): # iterate over all possible rightmost pairs
-                for e in range(d+4,j): # i < d < e < j and d,e must be at least 4 positions apart
+                Qb[ii,jj] = 0.0
+            for dd in range(ii+1,jj-4): # iterate over all possible rightmost pairs
+                for ee in range(dd+4,jj): # i < d < e < j and d,e must be at least 4 positions apart
                     interior_loop_type = ''
-                    if g_base_pair[i,j] and g_base_pair[d,e]: # possible for both base pairs to form
-                        if i+1 == d and e+1 == j: # if stacked
+                    if g_base_pair[ii,jj] and g_base_pair[dd,ee]: # possible for both base pairs to form
+                        if ii+1 == dd and ee+1 == jj: # if stacked
                             interior_loop_type = 's'
                         else: # if loop
                             interior_loop_type = 'l'
-                        Qb[i,j] += Qb[d,e] * Q_interior(g_base_pair[i,j], g_stack, interior_loop_type)
+                        Qb[ii,jj] += Qb[dd,ee] * Q_interior(g_base_pair[ii,jj], g_stack, interior_loop_type)
                     else: # no interior loop possible (one or both base pairs can't form)
 			pass
             # Qs recursion
-            for d in range(i+4, j+1): # iterate over all rightmost pairs with base i (beginning of subsequence)
-                Qs[i,j] += Qb[i,d]
+            for dd in range(ii+4, jj+1): # iterate over all rightmost pairs with base i (beginning of subsequence)
+                Qs[ii,jj] += Qb[ii,dd]
             # Q recursion
-            Q[i,j] = 1.0
-            for d in range(i,j-3): # iterating over all possible rightmost pairs
-                if d == 0: # to deal with issue of wrapping around in the last iteration
-                    Q[i,j] += Qs[d,j]
+            Q[ii,jj] = 1.0
+            for dd in range(ii,jj-3): # iterating over all possible rightmost pairs
+                if dd == 0: # to deal with issue of wrapping around in the last iteration
+                    Q[ii,jj] += Qs[dd,jj]
                 else:
-                    Q[i,j] += Q[i,d-1]*Qs[d,j]
+                    Q[ii,jj] += Q[ii,dd-1]*Qs[dd,jj]
     return Q[0,N-1]
 
 
@@ -108,49 +108,49 @@ def linear_derivatives(param, sequence, N, g): # g: energy parameter differentia
     dQs = np.zeros((N,N))
 
     # LINEAR SEQUENCE calculation of partition function and its derivative
-    for l in range(1,N+1): # iterating over all subsequence lengths
-        for i in range(0,N-l+1): # iterating over all starting positions for subsequences
-            j = i + l - 1 # ending position for subsequence
+    for ll in range(1,N+1): # iterating over all subsequence lengths
+        for ii in range(0,N-ll+1): # iterating over all starting positions for subsequences
+            jj = ii + ll - 1 # ending position for subsequence
             # Qb recursion
-            if j-i > 3 and g_base_pair[i,j]: # if possible hairpin: at least 4 positions apart and able to form a base pair
-                q_hairpin_ij = Q_hairpin(g_base_pair[i,j])
-                Qb[i,j] = q_hairpin_ij
-                if g == g_base_pair[i,j]:  # differentiating wrt current base pair parameter
-                    dQb[i,j] = -q_hairpin_ij * invRT #(Q_hairpin(g_base_pair[i,j] + h, g_loop) - q_hairpin_ij)/h
+            if jj-ii > 3 and g_base_pair[ii,jj]: # if possible hairpin: at least 4 positions apart and able to form a base pair
+                q_hairpin_ij = Q_hairpin(g_base_pair[ii,jj])
+                Qb[ii,jj] = q_hairpin_ij
+                if g == g_base_pair[ii,jj]:  # differentiating wrt current base pair parameter
+                    dQb[ii,jj] = -q_hairpin_ij * invRT #(Q_hairpin(g_base_pair[i,j] + h, g_loop) - q_hairpin_ij)/h
             else: # no hairpin possible
-                Qb[i,j] = 0.0
-                dQb[i,j] = 0.0
-            for d in range(i+1,j-4): # iterate over all possible rightmost pairs
-                for e in range(d+4,j): # i < d < e < j and d,e must be at least 4 positions apart
+                Qb[ii,jj] = 0.0
+                dQb[ii,jj] = 0.0
+            for dd in range(ii+1,jj-4): # iterate over all possible rightmost pairs
+                for ee in range(dd+4,jj): # i < d < e < j and d,e must be at least 4 positions apart
                     interior_loop_type = '' #g_interior = 0.0
-                    if g_base_pair[i,j] and g_base_pair[d,e]: # possible for both base pairs to form
-                        if i+1 == d and e+1 == j: # if stacked
+                    if g_base_pair[ii,jj] and g_base_pair[dd,ee]: # possible for both base pairs to form
+                        if ii+1 == dd and ee+1 == jj: # if stacked
                             interior_loop_type = 's' #g_interior = g_base_pair[i,j] + g_stack # avoids double counting free energy from base pair formation
                         else: # if loop
                             interior_loop_type = 'l' #g_interior = g_base_pair[i,j] + g_loop
-                        q_int_ij = Q_interior(g_base_pair[i,j], g_stack, interior_loop_type)
-                        Qb[i,j] += Qb[d,e] * q_int_ij
+                        q_int_ij = Q_interior(g_base_pair[ii,jj], g_stack, interior_loop_type)
+                        Qb[ii,jj] += Qb[dd,ee] * q_int_ij
                         dQ_int = 0.0 # derivative of Q_interior
-                        if g == g_base_pair[i,j]:
+                        if g == g_base_pair[ii,jj]:
                             dQ_int = -q_int_ij * invRT #(Q_interior(g_base_pair[i,j] + h, g_loop, g_stack, interior_loop_type) - q_int_ij)/h
                         elif g == g_stack and interior_loop_type == 's':
                             dQ_int = -q_int_ij * invRT #(Q_interior(g_base_pair[i,j], g_loop, g_stack + h, interior_loop_type) - q_int_ij)/h
-                        dQb[i,j] += dQ_int * Qb[d,e] + q_int_ij * dQb[d,e]
+                        dQb[ii,jj] += dQ_int * Qb[dd,ee] + q_int_ij * dQb[dd,ee]
                     else: # no interior loop possible (one or both base pairs can't form)
                         pass
             # Qs recursion
-            for d in range(i+4, j+1): # iterate over all rightmost pairs with base i (beginning of subsequence)
-                Qs[i,j] += Qb[i,d]
-                dQs[i,j] += dQb[i,d]
+            for dd in range(ii+4, jj+1): # iterate over all rightmost pairs with base i (beginning of subsequence)
+                Qs[ii,jj] += Qb[ii,dd]
+                dQs[ii,jj] += dQb[ii,dd]
             # Q recursion
-            Q[i,j] = 1.0
-            for d in range(i,j-3): # iterating over all possible rightmost pairs
-                if d == 0: # to deal with issue of wrapping around in the last iteration
-                    Q[i,j] += Qs[d,j]
-                    dQ[i,j] += dQs[d,j]
+            Q[ii,jj] = 1.0
+            for dd in range(ii,jj-3): # iterating over all possible rightmost pairs
+                if dd == 0: # to deal with issue of wrapping around in the last iteration
+                    Q[ii,jj] += Qs[dd,jj]
+                    dQ[ii,jj] += dQs[dd,jj]
                 else:
-                    Q[i,j] += Q[i,d-1]*Qs[d,j]
-                    dQ[i,j] += dQ[i,d-1]*Qs[d,j] + Q[i,d-1]*dQs[d,j]
+                    Q[ii,jj] += Q[ii,dd-1]*Qs[dd,jj]
+                    dQ[ii,jj] += dQ[ii,dd-1]*Qs[dd,jj] + Q[ii,dd-1]*dQs[dd,jj]
     return dQ[0,N-1]
 
 def linear_gradient(param, sequence, N):
@@ -172,47 +172,47 @@ def linear_gradient(param, sequence, N):
     dQs = np.zeros((N,N,4))
 
     # LINEAR SEQUENCE calculation of partition function and its derivative
-    for l in range(1,N+1): # iterating over all subsequence lengths
-        for i in range(0,N-l+1): # iterating over all starting positions for subsequences
-            j = i + l - 1 # ending position for subsequence
+    for ll in range(1,N+1): # iterating over all subsequence lengths
+        for ii in range(0,N-ll+1): # iterating over all starting positions for subsequences
+            jj = ii + ll - 1 # ending position for subsequence
             # Qb recursion
-            energy_index, = np.where(param == g_base_pair[i,j])
-            if j-i > 3 and g_base_pair[i,j]: # if possible hairpin: at least 4 positions apart and able to form a base pair
-                q_hairpin_ij = Q_hairpin(g_base_pair[i,j])
-                Qb[i,j] = q_hairpin_ij
-                dQb[i,j, energy_index] = -q_hairpin_ij * invRT #(Q_hairpin(g_base_pair[i,j] + h, g_loop) - q_hairpin_ij)/h
+            energy_index, = np.where(param == g_base_pair[ii,jj])
+            if jj-ii > 3 and g_base_pair[ii,jj]: # if possible hairpin: at least 4 positions apart and able to form a base pair
+                q_hairpin_ij = Q_hairpin(g_base_pair[ii,jj])
+                Qb[ii,jj] = q_hairpin_ij
+                dQb[ii,jj, energy_index] = -q_hairpin_ij * invRT #(Q_hairpin(g_base_pair[i,j] + h, g_loop) - q_hairpin_ij)/h
             else: # no hairpin possible
                 pass
-            for d in range(i+1,j-4): # iterate over all possible rightmost pairs
-                for e in range(d+4,j): # i < d < e < j and d,e must be at least 4 positions apart
+            for dd in range(ii+1,jj-4): # iterate over all possible rightmost pairs
+                for ee in range(dd+4,jj): # i < d < e < j and d,e must be at least 4 positions apart
                     interior_loop_type = '' #g_interior = 0.0
-                    if g_base_pair[i,j] and g_base_pair[d,e]: # possible for both base pairs to form
-                        if i+1 == d and e+1 == j: # if stacked
+                    if g_base_pair[ii,jj] and g_base_pair[dd,ee]: # possible for both base pairs to form
+                        if ii+1 == dd and ee+1 == jj: # if stacked
                             interior_loop_type = 's' #g_interior = g_base_pair[i,j] + g_stack # avoids double counting free energy from base pair formation
                         else: # if loop
                             interior_loop_type = 'l' #g_interior = g_base_pair[i,j] + g_loop
-                        q_int_ij = Q_interior(g_base_pair[i,j], g_stack, interior_loop_type)
-                        Qb[i,j] += Qb[d,e] * q_int_ij
+                        q_int_ij = Q_interior(g_base_pair[ii,jj], g_stack, interior_loop_type)
+                        Qb[ii,jj] += Qb[dd,ee] * q_int_ij
                         dQ_int = np.zeros(4) # derivative of Q_interior
                         dQ_int[energy_index] = -q_int_ij * invRT #(Q_interior(g_base_pair[i,j] + h, g_loop, g_stack, interior_loop_type) - q_int_ij)/h
                         if interior_loop_type == 's':
                             dQ_int[3] = -q_int_ij * invRT #(Q_interior(g_base_pair[i,j], g_loop, g_stack + h, interior_loop_type) - q_int_ij)/h
-                        dQb[i,j] += dQ_int * Qb[d,e] + q_int_ij * dQb[d,e]
+                        dQb[ii,jj] += dQ_int * Qb[dd,ee] + q_int_ij * dQb[dd,ee]
                     else: # no interior loop possible (one or both base pairs can't form)
                         pass
             # Qs recursion
-            for d in range(i+4, j+1): # iterate over all rightmost pairs with base i (beginning of subsequence)
-                Qs[i,j] += Qb[i,d]
-                dQs[i,j] += dQb[i,d]
+            for dd in range(ii+4, jj+1): # iterate over all rightmost pairs with base i (beginning of subsequence)
+                Qs[ii,jj] += Qb[ii,dd]
+                dQs[ii,jj] += dQb[ii,dd]
             # Q recursion
-            Q[i,j] = 1.0
-            for d in range(i,j-3): # iterating over all possible rightmost pairs
-                if d == 0: # to deal with issue of wrapping around in the last iteration
-                    Q[i,j] += Qs[d,j]
-                    dQ[i,j] += dQs[d,j]
+            Q[ii,jj] = 1.0
+            for dd in range(ii,jj-3): # iterating over all possible rightmost pairs
+                if dd == 0: # to deal with issue of wrapping around in the last iteration
+                    Q[ii,jj] += Qs[dd,jj]
+                    dQ[ii,jj] += dQs[dd,jj]
                 else:
-                    Q[i,j] += Q[i,d-1]*Qs[d,j]
-                    dQ[i,j] += dQ[i,d-1]*Qs[d,j] + Q[i,d-1]*dQs[d,j]
+                    Q[ii,jj] += Q[ii,dd-1]*Qs[dd,jj]
+                    dQ[ii,jj] += dQ[ii,dd-1]*Qs[dd,jj] + Q[ii,dd-1]*dQs[dd,jj]
     return dQ[0,N-1]
 
 def linear_derivatives_over_val(param, sequence, N, g):
