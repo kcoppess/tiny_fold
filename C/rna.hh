@@ -3,7 +3,7 @@
 #include <vector>
 using namespace std;
 
-typedef vector<vector<double>> matrix;
+typedef vector<vector<double> > matrix;
 
 class RNA {
     public:
@@ -15,12 +15,13 @@ class RNA {
         double get_energy();
         double get_partition();
         void update_energy(vector<double> ener);
+    
     private:
-        void calc_partitionBound();
         void calc_partition();
         void calc_gBasePair(matrix& gBP);
+        double hairpin(double gHP);
+        double interior(double gBP, char loop);
 
-        double g_loop;
         bool isCircular;
         int nn; // number of bases
         string sequence;

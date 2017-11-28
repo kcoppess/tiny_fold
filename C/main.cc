@@ -1,18 +1,16 @@
 #include <iostream>
 #include <string>
+#include <vector>
 #include "rna.hh"
 using namespace std;
 
-int main() {
-    string seq = "AUGC";
-    vector<double> param;
-    param.resize(4);
-    for (int i=0; i < 4; i++) {
-        param[i] = i;
-    }
-    RNA bob(seq, true, param);
+typedef vector<vector<double> > matrix;
 
+int main() {
+    string seq = "ACCCUCCC";
+    vector<double> ener = {5.69, 6.0, 4.09, -7.09};
+    
+    RNA bob(seq, true, ener);
     cout << bob.get_partition() << endl;
-    bob.update_energy(param);
     return 0;
 }
