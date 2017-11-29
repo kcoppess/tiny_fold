@@ -7,7 +7,7 @@ using namespace std;
 typedef vector<vector<double> > matrix;
 
 int main() {
-    string seq = "ACCCUCCC";
+    string seq = "AAAUUUUAAA";
     vector<double> ener = {5.69, 6.0, 4.09, -7.09};
     
     RNA bob(seq, true, ener);

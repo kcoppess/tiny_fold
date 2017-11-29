@@ -44,6 +44,23 @@ void RNA::update_energy(vector<double> ener) {
 
 /* Private Functions */
 
+void RNA::calc_gBasePair(matrix& gBP){
+    for (int ii=0; ii < nn; ii++) {
+        for (int jj=0; jj < nn; jj++) {
+            if ((sequence[ii] == 'A' && sequence[jj] == 'U') || (sequence[ii] == 'U' && sequence[jj] == 'A')) {
+                gBP[ii][jj] = energies[0];
+            } else if ((sequence[ii] == 'U' && sequence[jj] == 'G') || (sequence[ii] == 'G' && sequence[jj] == 'U')) {
+                gBP[ii][jj] = energies[1];
+            } else if ((sequence[ii] == 'G' && sequence[jj] == 'C') || (sequence[ii] == 'C' && sequence[jj] == 'G')) {
+                gBP[ii][jj] = energies[2];
+            } else {
+                gBP[ii][jj] = 0.;
+            }
+        }
+    }
+    return;
+}
+
 // returns hairpin loop energy
 double RNA::hairpin(double gHP) {
    return exp(-invRT * (gHP + g_loop));
@@ -69,11 +86,9 @@ void RNA::calc_partition() {
     calc_gBasePair(g_base_pair);
 
     // entry i,j stores (bound) parition values for subsequence with ending bases i and j
-    partitionBound.resize(nn);
-    partition.resize(nn);
+    partitionBound.resize(nn, vector<double>(nn));
+    partition.resize(nn, vector<double>(nn));
     for (int ii = 0; ii < nn; ii++) {
-        partitionBound[ii].resize(nn);
-        partition[ii].resize(nn);
         partition[ii][ii-1] = 1;
     }
     matrix partitionS(nn, vector<double>(nn)); // storage matrix
@@ -143,20 +158,3 @@ void RNA::calc_partition() {
     }
 }
 
-
-void RNA::calc_gBasePair(matrix& gBP){
-    for (int ii=0; ii < nn; ii++) {
-        for (int jj=0; jj < nn; jj++) {
-            if ((sequence[ii] == 'A' && sequence[jj] == 'U') || (sequence[ii] == 'U' && sequence[jj] == 'A')) {
-                gBP[ii][jj] = energies[0];
-            } else if ((sequence[ii] == 'U' && sequence[jj] == 'G') || (sequence[ii] == 'G' && sequence[jj] == 'U')) {
-                gBP[ii][jj] = energies[1];
-            } else if ((sequence[ii] == 'G' && sequence[jj] == 'C') || (sequence[ii] == 'C' && sequence[jj] == 'G')) {
-                gBP[ii][jj] = energies[2];
-            } else {
-                gBP[ii][jj] = 0.;
-            }
-        }
-    }
-    return;
-}
