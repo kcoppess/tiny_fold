@@ -4,3 +4,5 @@
 *.png
 *.cache/*
 *a.out
+*a.out.*
+*catch.hpp

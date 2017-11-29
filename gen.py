@@ -1,4 +1,4 @@
-# ad hoc implementation of training on bpp data
+# bpp training using BFGS
 # NOTE ignoring circular sequences for the moment
 import numpy as np
 import base_pair_probabilities as bpp
