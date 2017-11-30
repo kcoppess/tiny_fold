@@ -25,33 +25,6 @@ def gradient(param, sequence, basepairprob, bp):
     prior = p.priors - param
     return deriv_sum_sq - 2 * p.w * prior #NOTE second term: prior term to deal with vanishing gradient
 
-# NOTE will need to fix the function calls if wanting to use this section XXX
-#def gradient(energy_param, sequence, partition):
-#    N = len(sequence)
-#
-#    is_circular = False
-#    if sequence[-1] == '-':
-#        is_circular = True
-#        N = N - 1 # ignoring '-'
-#
-#    prior = p.priors - energy_param
-#    grad = -2 * p.w * prior
-#    
-#    # ignoring steric effects, generating base-pair free energy matrix
-#    g_base_pair = gm.generator(sequence, energy_param[0], energy_param[1], energy_param[2], N)
-#
-#    if is_circular:
-#        pred_partition = log_z.circular(g_base_pair, p.g_loop, energy_param[3], N)
-#        for j in range(4):
-#            gr = log_z.circular_derivatives(g_base_pair, p.g_loop, energy_param[3], N, energy_param[j]) # g_base_pair, g_loop, g_stack, N, g
-#            grad[j] += (-2)*(partition - pred_partition) * gr 
-#    else:
-#        pred_partition = log_z.linear(g_base_pair, p.g_loop, energy_param[3], N)
-#        for j in range(4):
-#            gr = log_z.linear_derivatives(g_base_pair, p.g_loop, energy_param[3], N, energy_param[j])
-#            grad[j] += (-2)*(partition - pred_partition) * gr
-#    return grad
-
 def convergence(param, prev_param): 
     if np.linalg.norm(param - prev_param) < 1e-6:
         return True

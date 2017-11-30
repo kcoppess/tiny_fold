@@ -2,18 +2,26 @@
 #include "catch.hpp"
 #include "rna.hh"
 #include <string>
-#include <vector>
+#include <valarray>
 using namespace std;
 
 string seqs[5] = {"AAAAA", "AAAAU", "GCCCC", "ACCCCGU", "AACCCCGUU"};
 string circ[4] = {"AAAAA", "AAAAU", "ACCCUCCC", "AAACCCUUUCCC"};
 
-vector<double> ener = {5.69, 6.0, 4.09, -7.09};
+valarray<double> ener = {5.69, 6.0, 4.09, -7.09};
 
 double tol = 1e-11;
 
 bool almost_equal(double x, double y) {
     return abs(x-y) < tol;
+}
+
+bool vect_almost_equal(valarray<double> x, valarray<double> y) {
+    double diff2 = 0;
+    for (int i = 0; i < 4; i++) {
+        diff2 += pow(x[i] - y[i],2);
+    }
+    return sqrt(diff2) < tol;
 }
 
 TEST_CASE("Partition function for linear sequences", "[partition_linear]") {
@@ -33,9 +41,14 @@ TEST_CASE("Partition function for circular sequences", "[partition_circular]") {
 }
 
 TEST_CASE("Partition gradients for linear sequences", "[gradient_part_linear]") {
-    vector< vector<double> > grad = {{0,0,0,0},
+    vector< valarray<double> > grad = {{0,0,0,0},
         {-2.10624588e-05,0,0,0},
         {0,0,-0.000313559325,0},
         {-0.00335171279,0,-0.00364420966,-0.003330650339},
         {-0.0746191942895,0,-0.039022635596,-0.074311205720273069}};
+    for (int i = 0; i < 4; i++) {
+        cout << i << endl;
+        RNA bob(seqs[i], false, ener);
+        REQUIRE( vect_almost_equal(bob.get_gradient(), grad[i]) );
+    } 
 }

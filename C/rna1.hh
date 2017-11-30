@@ -1,23 +1,20 @@
 #include <string>
 #include <cmath>
-#include <valarray>
 #include <vector>
 
-typedef std::vector< std::vector< std::valarray<double> > > tensor;
-typedef std::vector< std::valarray<double> > matrix;
-typedef std::valarray<double> vect;
+typedef std::vector< std::vector<double> > matrix;
 
 class RNA {
     public:
-        RNA(std::string seq, bool type, vect ener);
+        RNA(std::string seq, bool type, std::vector<double> ener);
         ~RNA();
         bool is_circular();
         int get_length();
         std::string get_sequence();
         double get_energy();
         double get_partition();
-        vect get_gradient();
-        void update_energy(vect ener);
+        std::vector<double> get_gradient();
+        void update_energy(std::vector<double> ener);
     
     private:
         void calc_partition();
@@ -29,11 +26,9 @@ class RNA {
         bool isCircular;
         int nn; // number of bases
         std::string sequence;
-        vect energies;
+        std::vector<double> energies;
         matrix partitionBound;
-        matrix partitionS;
         matrix partition;
-        tensor gradientBound;
-        tensor gradientS;
-        tensor gradient;
+        std::vector<matrix> gradientBound;
+        std::vector<matrix> gradient;
 };

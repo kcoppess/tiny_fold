@@ -1,13 +1,10 @@
 #include "rna.hh"
 #include <iostream>
 #include <string>
-#include <valarray>
 #include <vector>
 #include <cmath>
 
-typedef std::vector< std::vector< std::valarray<double> > > tensor;
-typedef std::vector< std::valarray<double> > matrix;
-typedef std::valarray<double> vect;
+typedef std::vector< std::vector<double> > matrix;
 
 /* Global variables */
 const double R = 0.0019872; // kcal/K/mol universal gas constant
@@ -19,7 +16,7 @@ const double exp_neg_gloop_over_RT = exp(-invRT*g_loop);
 
 /* Public Functions */
 
-RNA::RNA(std::string seq, bool type, vect ener) { 
+RNA::RNA(std::string seq, bool type, std::vector<double> ener) { 
     isCircular = type;
     sequence = seq;
     nn = seq.length();
@@ -40,9 +37,9 @@ double RNA::get_energy() { return energies[3]; }
 
 double RNA::get_partition() { return partition[0][nn-1]; }
 
-vect RNA::get_gradient() { return gradient[0][nn-1]; }
+std::vector<double> RNA::get_gradient() { return gradient[0][nn-1]; }
 
-void RNA::update_energy(vect ener) {
+void RNA::update_energy(std::vector<double> ener) {
     energies = ener;
     calc_partition();
     calc_gradient();
@@ -88,16 +85,16 @@ void RNA::calc_partition() {
     double exp_neg_gstack_gloop_over_RT = exp(-invRT*(energies[3] - g_loop));
 
     // stores energies for each possible 
-    matrix g_base_pair(nn, vect(nn));
+    matrix g_base_pair(nn, std::vector<double>(nn));
     calc_gBasePair(g_base_pair);
 
     // entry i,j stores (bound) parition values for subsequence with ending bases i and j
-    partitionBound.resize(nn, vect(nn));
-    partition.resize(nn, vect(nn));
+    partitionBound.resize(nn, std::vector<double>(nn));
+    partition.resize(nn, std::vector<double>(nn));
     for (int ii = 0; ii < nn; ii++) {
         partition[ii][ii-1] = 1;
     }
-    partitionS.resize(nn, vect(nn)); // storage matrix
+    matrix partitionS(nn, std::vector<double>(nn)); // storage matrix
 
     for (int ll = 1; ll < nn+1; ll++) { //iterating over all subsequence lengths
         for (int ii = 0; ii < nn-ll+1; ii++) { //iterating over all starting positions for subsequences
@@ -166,26 +163,21 @@ void RNA::calc_partition() {
 
 void RNA::calc_gradient() {
     double exp_neg_gstack_gloop_over_RT = exp(-invRT*(energies[3] - g_loop));
+    vector<double> grad(4);
 
     // stores energies for each possible 
-    matrix g_base_pair(nn, vect(nn));
+    matrix g_base_pair(nn, std::vector<double>(nn));
     calc_gBasePair(g_base_pair);
 
     // entry i,j stores (bound) parition gradients for subsequence with ending bases i and j
-    gradientBound.resize(nn, matrix(nn, vect(4)));
-    gradientS.resize(nn, matrix(nn, vect(4))); // storage matrix
-    gradient.resize(nn, matrix(nn, vect(4)));
+    gradientBound.resize(nn, matrix(nn, std::vector<double>(4)));
+    std::vector<matrix> gradientS(nn, matrix(nn, std::vector<double>(4))); // storage matrix
+    gradient.resize(nn, matrix(nn, std::vector<double>(4)));
 
     for (int ll = 1; ll < nn+1; ll++) { //iterating over all subsequence lengths
         for (int ii = 0; ii < nn-ll+1; ii++) { //iterating over all starting positions for subsequences
             int jj = ii + ll - 1; // ending position for subsequence
-            int ind = -1; // keeps track of which energy parameter
-            for (int mm = 0; mm < 4; mm++) {
-                if (g_base_pair[ii][jj] == energies[mm]) {
-                    ind = mm;
-                    break;
-                }
-            }
+            int ind = std::find(energies.begin(), energies.end(), g_base_pair[ii][jj]) - energies.begin();
             
             // partitionBound recursion
             if (jj-ii > 3 && g_base_pair[ii][jj]) { // if possible hairpin: at least 4 positions apart and able to form a base pair
@@ -209,12 +201,22 @@ void RNA::calc_gradient() {
                         if (isCircular) {
                             if ((dd + nn) - ee > 3) {
                                 double inter = interior(g_base_pair[ii][jj], interior_loop_type);
-                                gradientBound[ii][jj] += gradientBound[dd][ee] * inter;
+                                grad = gradientBound[dd][ee];
+                                std::transform(grad.begin(), grad.end(), grad.begin(), 
+                                        std::bind1st(std::multiplies<double>, inter)); // gradientBound[dd][ee] * inter
+                                // gradientBound[ii][jj] += gradientBound[dd][ee] * inter
+                                std::transform(gradientBound[ii][jj].begin(), gradientBound[ii][jj].end(), grad.begin(), 
+                                        gradientBound[ii][jj].begin(), std::plus<double>());
                                 gradientBound[ii][jj][ind] += -invRT * partitionBound[dd][ee] * inter;
                             }
                         } else {
                             double inter = interior(g_base_pair[ii][jj], interior_loop_type);
-                            gradientBound[ii][jj] += gradientBound[dd][ee] * inter;
+                            grad = gradientBound[dd][ee];
+                            std::transform(grad.begin(), grad.end(), grad.begin(), 
+                                    std::bind1st(std::multiplies<double>, inter)); // gradientBound[dd][ee] * inter
+                            // gradientBound[ii][jj] += gradientBound[dd][ee] * inter
+                            std::transform(gradientBound[ii][jj].begin(), gradientBound[ii][jj].end(), grad.begin(), 
+                                    gradientBound[ii][jj].begin(), std::plus<double>());
                             gradientBound[ii][jj][ind] += -invRT * partitionBound[dd][ee] * inter;
                         }
                     }
@@ -222,33 +224,80 @@ void RNA::calc_gradient() {
             }
             // partitionS recursion
             for (int dd = ii+4; dd < jj+1; dd++) { // iterate over all rightmost pairs with base i (beginning of subsequence)
-                gradientS[ii][jj] += gradientBound[ii][dd];
+                // gradientS[ii][jj] += gradientBound[ii][dd]
+                std::transform(gradientS[ii][jj].begin(), gradientS[ii][jj].end(), gradientBound[ii][dd].begin(), 
+                        gradientS[ii][jj].begin(), std::plus<double>());
             }
             // partition recursion
             if (isCircular && ii == 0 && jj == nn-1) { // closing the chain for circular RNA
                 for (int dd = 0; dd < nn-4; dd++) {
                     if (dd == 0) {
-                        gradient[ii][jj] += gradientS[0][jj] * exp_neg_gloop_over_RT;
+                        grad = gradientS[0][jj];
+                        std::transform(grad.begin(), grad.end(), grad.begin(), 
+                                std::bind1st(std::multiplies<double>, exp_neg_gloop_over_RT));
+                        // gradient[ii][jj] += gradientS[0][jj] * exp_neg_gloop_over_RT
+                        std::transform(gradient[ii][jj].begin(), gradient[ii][jj].end(), grad.begin(), 
+                                gradient[ii][jj].begin(), std::plus<double>());
                     } else {
                         if (partitionBound[0][dd-1] && partitionBound[dd][nn-1]) { // to account for stacked pair forming when chain is closed
-                            // chain rule
-                            gradient[ii][jj] += gradient[0][dd-1] * partitionS[dd][nn-1] * exp_neg_gloop_over_RT;
-                            gradient[ii][jj] += partition[0][dd-1] * gradientS[dd][nn-1] * exp_neg_gloop_over_RT;
-                            gradient[ii][jj] += gradientS[0][dd-1] * (exp_neg_gstack_gloop_over_RT - 1) * partitionS[dd][nn-1] * exp_neg_gloop_over_RT;
-                            gradient[ii][jj] += partitionS[0][dd-1] * (exp_neg_gstack_gloop_over_RT - 1) * gradientS[dd][nn-1] * exp_neg_gloop_over_RT;
-                            gradient[ii][jj][3] += -invRT * partitionS[0][dd-1] * exp_neg_gstack_gloop_over_RT * partitionS[dd][nn-1] * exp_neg_gloop_over_RT;
+                            // gradient[ii][jj] += gradient[0][dd-1] * partitionS[dd][nn-1] * exp_neg_gloop_over_RT 
+                            grad = gradient[0][dd-1];
+                            std::transform(grad.begin(), grad.end(), grad.begin(), 
+                                    std::bind1st(std::multiplies<double>, partitionS[dd][nn-1] * exp_neg_gloop_over_RT));
+                            std::transform(gradient[ii][jj].begin(), gradient[ii][jj].end(), grad.begin(), 
+                                    gradient[ii][jj].begin(), std::plus<double>());
+                            // gradient[ii][jj] += partition[0][dd-1] * gradientS[dd][nn-1] * exp_neg_gloop_over_RT
+                            grad = gradientS[dd][nn-1];
+                            std::transform(grad.begin(), grad.end(), grad.begin(), 
+                                    std::bind1st(std::multiplies<double>, partition[0][dd-1] * exp_neg_gloop_over_RT));
+                            std::transform(gradient[ii][jj].begin(), gradient[ii][jj].end(), grad.begin(), 
+                                    gradient[ii][jj].begin(), std::plus<double>());
+                            // gradient[ii][jj] += gradientS[0][dd-1] * (exp_neg_gstack_gloop_over_RT - 1) * partitionS[dd][nn-1] * exp_neg_gloop_over_RT
+                            double x = exp_neg_gstack_gloop_over_RT - 1;
+                            grad = gradientS[0][dd-1];
+                            std::transform(grad.begin(), grad.end(), grad.begin(), 
+                                    std::bind1st(std::multiplies<double>, x * partitionS[dd][nn-1] * exp_neg_gloop_over_RT));
+                            std::transform(gradient[ii][jj].begin(), gradient[ii][jj].end(), grad.begin(), 
+                                    gradient[ii][jj].begin(), std::plus<double>());
+                            // gradient[ii][jj] += partitionS[0][dd-1] * (exp_neg_gstack_gloop_over_RT - 1) * gradientS[dd][nn-1] * exp_neg_gloop_over_RT
+                            grad = gradientS[dd][nn-1];
+                            std::transform(grad.begin(), grad.end(), grad.begin(), 
+                                    std::bind1st(std::multiplies<double>, x * partitionS[0][dd-1] * exp_neg_gloop_over_RT));
+                            std::transform(gradient[ii][jj].begin(), gradient[ii][jj].end(), grad.begin(), 
+                                    gradient[ii][jj].begin(), std::plus<double>());
+                            
+                            gradient[ii][jj][3] += -invRT * partitionS[0][dd-1] * exp_neg_gstack_gloop_over_RT * partitionS[dd][nn-1] * exp_neg_gloop_over_RT
                         } else { // to account for interior loop forming when chain is closed
-                            gradient[ii][jj] += gradient[ii][dd-1] * partitionS[dd][jj] * exp_neg_gloop_over_RT;
-                            gradient[ii][jj] += partition[ii][dd-1] * gradientS[dd][jj] * exp_neg_gloop_over_RT;
+                            // gradient[ii][jj] += gradient[ii][dd-1] * partitionS[dd][jj] * exp_neg_gloop_over_RT
+                            grad = gradient[ii][dd-1];
+                            std::transform(grad.begin(), grad.end(), grad.begin(), 
+                                    std::bind1st(std::multiplies<double>, partitionS[dd][jj] * exp_neg_gloop_over_RT));
+                            std::transform(gradient[ii][jj].begin(), gradient[ii][jj].end(), grad.begin(), 
+                                    gradient[ii][jj].begin(), std::plus<double>());
+                            // gradient[ii][jj] += partition[ii][dd-1] * gradientS[dd][jj] * exp_neg_gloop_over_RT
+                            grad = gradientS[dd][jj];
+                            std::transform(grad.begin(), grad.end(), grad.begin(), 
+                                    std::bind1st(std::multiplies<double>, partition[ii][dd-1] * exp_neg_gloop_over_RT));
+                            std::transform(gradient[ii][jj].begin(), gradient[ii][jj].end(), grad.begin(), 
+                                    gradient[ii][jj].begin(), std::plus<double>());
                         }
                     }
                 }
             } else {
                 for (int dd = ii; dd < jj-3; dd++) { // iterating over all possible rightmost pairs
                     if (dd == 0) { // to deal with issue of wrapping around in the last iteration
-                        gradient[ii][jj] += gradientS[dd][jj];
+                        // gradient[ii][jj] += gradientS[dd][jj]
+                        std::transform(gradient[ii][jj].begin(), gradient[ii][jj].end(), gradientS[dd][jj].begin(), 
+                                gradient[ii][jj].begin(), std::plus<double>());
                     } else {
-                        gradient[ii][jj] += gradient[ii][dd-1] * partitionS[dd][jj] + partition[ii][dd-1] * gradientS[dd][jj];
+                        // XXX finished editing here XXX XXX XXX XXX XXX
+                        // gradient[ii][jj] += gradient
+                        grad = gradientS[dd][jj];
+                        std::transform(grad.begin(), grad.end(), grad.begin(), 
+                                std::bind1st(std::multiplies<double>, partition[ii][dd-1] * exp_neg_gloop_over_RT));
+                        std::transform(gradient[ii][jj].begin(), gradient[ii][jj].end(), grad.begin(), 
+                                gradient[ii][jj].begin(), std::plus<double>());
+                        partition[ii][jj] += partition[ii][dd-1]*partitionS[dd][jj];
                     }
                 }
             }
