@@ -85,7 +85,7 @@ TEST_CASE("Basepair probabilities for linear sequences", "[bpp_linear]") {
     for (int i = 0; i < 5; i++) {
         RNA thor(seqs[i], false, ener, true);
         for (int j = 0; j < seqs[i].length(); j++) {
-            REQUIRE( vect_almost_equal( thor.get_bpp(0,0)[j], truth[i][j]) );
+            REQUIRE( vect_almost_equal( thor.get_bpp_full()[j], truth[i][j]) );
         }
     }
 }
