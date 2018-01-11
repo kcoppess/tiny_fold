@@ -18,7 +18,7 @@ class RNA {
         double get_partition();
         vect get_gradient();
         void update_energy(vect ener);
-        double get_bpp(int i, int j);
+        matrix get_bpp(int i, int j); //FIXME
     
     private:
         void calc_partition();

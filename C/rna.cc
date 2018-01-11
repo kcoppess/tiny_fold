@@ -58,7 +58,7 @@ void RNA::update_energy(vect ener) {
     return;
 }
 
-double RNA::get_bpp(int i, int j) { return bpp[i][j]; }
+matrix RNA::get_bpp(int i, int j) { return bpp; } //FIXME
 
 /* Private Functions */
 
