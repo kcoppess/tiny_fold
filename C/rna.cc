@@ -19,8 +19,9 @@ const double exp_neg_gloop_over_RT = exp(-invRT*g_loop);
 
 /* Public Functions */
 
-RNA::RNA(std::string seq, bool type, vect ener, bool calcBPP) { 
+RNA::RNA(std::string seq, bool type, vect ener, bool wantBPP) { 
     isCircular = type;
+    calcBPP = wantBPP;
     sequence = seq;
     nn = seq.length();
     energies = ener;
@@ -51,6 +52,9 @@ void RNA::update_energy(vect ener) {
     calc_gBasePair();
     calc_partition();
     calc_gradient();
+    if (calcBPP) {
+        calc_bpp();
+    }
     return;
 }
 
@@ -266,6 +270,7 @@ void RNA::calc_gradient() {
 }
 
 void RNA::calc_bpp() {
+    double exp_neg_gstack_over_RT = exp(-invRT*energies[3]);
     double exp_neg_gstack_gloop_over_RT = exp(-invRT*(energies[3] - g_loop));
     double full_part = partition[0][nn-1];
     
@@ -276,25 +281,29 @@ void RNA::calc_bpp() {
     // need to start with outside pairs and work way in
     for (int ii = 0; ii < nn; ii++) { // index for first base
         for (int jj = nn-1; jj > ii + 3; jj--) { // index for second base
-            q_bound_ij = Qb[i,j]
+            double q_bound_ij = partitionBound[ii][jj];
             // storage matrix entry
-            for k in range(j+1, N):
-                q_bound_ik = Qb[i,k]
-                if q_bound_ik:
-                    bp_prob_s[i,j] += np.exp(-invRT * g_base_pair[i,k]) * exp_neg_gloop_over_RT * bp_prob[i,k] / q_bound_ik
-            if i == 0 and j == N-1:
-                bp_prob[i,j] = q_bound_ij / full_part
-            elif i == 0:
-                bp_prob[i,j] = q_bound_ij * Q[j+1, N-1] / full_part
-            elif j == N-1:
-                bp_prob[i,j] = Q[0, i-1] * q_bound_ij / full_part
-            else:
-                bp_prob[i,j] = Q[0, i-1] * q_bound_ij * Q[j+1, N-1] / full_part // if base-pair is not enclosed
-                for l in range(i):
-                    bp_prob[i,j] += q_bound_ij * bp_prob_s[l,j]
-                if Qb[i-1, j+1]: // stacked pairs
-                    bp_prob[i,j] += -q_bound_ij * np.exp(-invRT * g_base_pair[i-1, j+1]) * bp_prob[i-1, j+1] * (exp_neg_gloop_over_RT - exp_neg_gstack_over_RT) / Qb[i-1, j+1]
-        
+            for (int kk = jj+1; kk < nn; kk++) {
+                double q_bound_ik = partitionBound[ii][kk];
+                if (q_bound_ik) {
+                    bppS[ii][jj] += exp(-invRT * g_base_pair[ii][kk]) * exp_neg_gloop_over_RT * bpp[ii][kk] / q_bound_ik;
+                }
+            }
+            if (ii == 0 && jj == nn-1) {
+                bpp[ii][jj] = q_bound_ij / full_part;
+            } else if (ii == 0) {
+                bpp[ii][jj] = q_bound_ij * partition[jj+1][nn-1] / full_part;
+            } else if (jj == nn-1) {
+                bpp[ii][jj] = partition[0][ii-1] * q_bound_ij / full_part;
+            } else {
+                bpp[ii][jj] = partition[0][ii-1] * q_bound_ij * partition[jj+1][nn-1] / full_part; // if base-pair is not enclosed
+                for (int ll = 0; ll < ii; ll++) {
+                    bpp[ii][jj] += q_bound_ij * bppS[ll][jj];
+                }
+                if (partitionBound[ii-1][jj+1]) { // stacked pairs
+                    bpp[ii][jj] += -q_bound_ij * exp(-invRT * g_base_pair[ii-1][jj+1]) * bpp[ii-1][jj+1] * (exp_neg_gloop_over_RT - exp_neg_gstack_over_RT) / partitionBound[ii-1][jj+1];
+                }
+            }
         }
     }
     return;

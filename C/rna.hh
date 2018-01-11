@@ -9,7 +9,7 @@ typedef std::valarray<double> vect;
 
 class RNA {
     public:
-        RNA(std::string seq, bool type, vect ener, bool calcBPP);
+        RNA(std::string seq, bool type, vect ener, bool wantBPP);
         ~RNA();
         bool is_circular();
         int get_length();
@@ -29,6 +29,7 @@ class RNA {
         void calc_bpp();
 
         bool isCircular;
+        bool calcBPP;
         int nn; // number of bases
         std::string sequence;
         vect energies;
