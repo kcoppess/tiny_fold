@@ -9,31 +9,36 @@ typedef std::valarray<double> vect;
 
 class RNA {
     public:
-        RNA(std::string seq, bool type, vect ener);
+        RNA(std::string seq, bool type, vect ener, bool calcBPP);
         ~RNA();
         bool is_circular();
         int get_length();
         std::string get_sequence();
-        double get_energy();
+        vect get_energy();
         double get_partition();
         vect get_gradient();
         void update_energy(vect ener);
+        double get_bpp(int i, int j);
     
     private:
         void calc_partition();
-        void calc_gBasePair(matrix& gBP);
+        void calc_gBasePair();
         double hairpin(double gHP);
         double interior(double gBP, char loop);
         void calc_gradient();
+        void calc_bpp();
 
         bool isCircular;
         int nn; // number of bases
         std::string sequence;
         vect energies;
+        matrix g_base_pair;
         matrix partitionBound;
         matrix partitionS;
         matrix partition;
         tensor gradientBound;
         tensor gradientS;
         tensor gradient;
+        matrix bppS;
+        matrix bpp;
 };

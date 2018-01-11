@@ -19,13 +19,17 @@ const double exp_neg_gloop_over_RT = exp(-invRT*g_loop);
 
 /* Public Functions */
 
-RNA::RNA(std::string seq, bool type, vect ener) { 
+RNA::RNA(std::string seq, bool type, vect ener, bool calcBPP) { 
     isCircular = type;
     sequence = seq;
     nn = seq.length();
     energies = ener;
+    calc_gBasePair();
     calc_partition();
     calc_gradient();
+    if (calcBPP) {
+        calc_bpp();
+    }
 }
 
 RNA::~RNA() {}
@@ -36,7 +40,7 @@ int RNA::get_length() { return nn; }
 
 std::string RNA::get_sequence() { return sequence; }
 
-double RNA::get_energy() { return energies[3]; }
+vect RNA::get_energy() { return energies; }
 
 double RNA::get_partition() { return partition[0][nn-1]; }
 
@@ -44,23 +48,28 @@ vect RNA::get_gradient() { return gradient[0][nn-1]; }
 
 void RNA::update_energy(vect ener) {
     energies = ener;
+    calc_gBasePair();
     calc_partition();
     calc_gradient();
+    return;
 }
+
+double RNA::get_bpp(int i, int j) { return bpp[i][j]; }
 
 /* Private Functions */
 
-void RNA::calc_gBasePair(matrix& gBP){
+void RNA::calc_gBasePair(){
+    g_base_pair.resize(nn, vect(nn));
     for (int ii=0; ii < nn; ii++) {
         for (int jj=0; jj < nn; jj++) {
             if ((sequence[ii] == 'A' && sequence[jj] == 'U') || (sequence[ii] == 'U' && sequence[jj] == 'A')) {
-                gBP[ii][jj] = energies[0];
+                g_base_pair[ii][jj] = energies[0];
             } else if ((sequence[ii] == 'U' && sequence[jj] == 'G') || (sequence[ii] == 'G' && sequence[jj] == 'U')) {
-                gBP[ii][jj] = energies[1];
+                g_base_pair[ii][jj] = energies[1];
             } else if ((sequence[ii] == 'G' && sequence[jj] == 'C') || (sequence[ii] == 'C' && sequence[jj] == 'G')) {
-                gBP[ii][jj] = energies[2];
+                g_base_pair[ii][jj] = energies[2];
             } else {
-                gBP[ii][jj] = 0.;
+                g_base_pair[ii][jj] = 0.;
             }
         }
     }
@@ -87,14 +96,10 @@ double RNA::interior(double gBP, char loop) {
 void RNA::calc_partition() {
     double exp_neg_gstack_gloop_over_RT = exp(-invRT*(energies[3] - g_loop));
 
-    // stores energies for each possible 
-    matrix g_base_pair(nn, vect(nn));
-    calc_gBasePair(g_base_pair);
-
     // entry i,j stores (bound) parition values for subsequence with ending bases i and j
     partitionBound.resize(nn, vect(nn));
     partition.resize(nn, vect(nn));
-    for (int ii = 0; ii < nn; ii++) {
+    for (int ii = 1; ii < nn; ii++) {
         partition[ii][ii-1] = 1;
     }
     partitionS.resize(nn, vect(nn)); // storage matrix
@@ -162,14 +167,11 @@ void RNA::calc_partition() {
             }
         }
     }
+    return;
 }
 
 void RNA::calc_gradient() {
     double exp_neg_gstack_gloop_over_RT = exp(-invRT*(energies[3] - g_loop));
-
-    // stores energies for each possible 
-    matrix g_base_pair(nn, vect(nn));
-    calc_gBasePair(g_base_pair);
 
     // entry i,j stores (bound) parition gradients for subsequence with ending bases i and j
     gradientBound.resize(nn, matrix(nn, vect(4)));
@@ -211,11 +213,17 @@ void RNA::calc_gradient() {
                                 double inter = interior(g_base_pair[ii][jj], interior_loop_type);
                                 gradientBound[ii][jj] += gradientBound[dd][ee] * inter;
                                 gradientBound[ii][jj][ind] += -invRT * partitionBound[dd][ee] * inter;
+                                if (interior_loop_type == 's') {
+                                    gradientBound[ii][jj][3] += -invRT * inter * partitionBound[dd][ee];
+                                }
                             }
                         } else {
                             double inter = interior(g_base_pair[ii][jj], interior_loop_type);
                             gradientBound[ii][jj] += gradientBound[dd][ee] * inter;
                             gradientBound[ii][jj][ind] += -invRT * partitionBound[dd][ee] * inter;
+                            if (interior_loop_type == 's') {
+                                gradientBound[ii][jj][3] += -invRT * inter * partitionBound[dd][ee];
+                            }
                         }
                     }
                 }
@@ -254,4 +262,41 @@ void RNA::calc_gradient() {
             }
         }
     }
+    return;
 }
+
+void RNA::calc_bpp() {
+    double exp_neg_gstack_gloop_over_RT = exp(-invRT*(energies[3] - g_loop));
+    double full_part = partition[0][nn-1];
+    
+    // base pair probability
+    bpp.resize(nn, vect(nn));
+    bppS.resize(nn, vect(nn)); // storage matrix
+    
+    // need to start with outside pairs and work way in
+    for (int ii = 0; ii < nn; ii++) { // index for first base
+        for (int jj = nn-1; jj > ii + 3; jj--) { // index for second base
+            q_bound_ij = Qb[i,j]
+            // storage matrix entry
+            for k in range(j+1, N):
+                q_bound_ik = Qb[i,k]
+                if q_bound_ik:
+                    bp_prob_s[i,j] += np.exp(-invRT * g_base_pair[i,k]) * exp_neg_gloop_over_RT * bp_prob[i,k] / q_bound_ik
+            if i == 0 and j == N-1:
+                bp_prob[i,j] = q_bound_ij / full_part
+            elif i == 0:
+                bp_prob[i,j] = q_bound_ij * Q[j+1, N-1] / full_part
+            elif j == N-1:
+                bp_prob[i,j] = Q[0, i-1] * q_bound_ij / full_part
+            else:
+                bp_prob[i,j] = Q[0, i-1] * q_bound_ij * Q[j+1, N-1] / full_part // if base-pair is not enclosed
+                for l in range(i):
+                    bp_prob[i,j] += q_bound_ij * bp_prob_s[l,j]
+                if Qb[i-1, j+1]: // stacked pairs
+                    bp_prob[i,j] += -q_bound_ij * np.exp(-invRT * g_base_pair[i-1, j+1]) * bp_prob[i-1, j+1] * (exp_neg_gloop_over_RT - exp_neg_gstack_over_RT) / Qb[i-1, j+1]
+        
+        }
+    }
+    return;
+}
+
