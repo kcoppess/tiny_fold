@@ -4,6 +4,8 @@
 #include <valarray>
 #include <vector>
 #include <cmath>
+#include <ctime>
+#include <fstream>
 
 typedef std::vector< std::vector< std::valarray<double> > > tensor;
 typedef std::vector< std::valarray<double> > matrix;
@@ -114,6 +116,8 @@ double RNA::interior(double gBP, char loop) {
 
 // calculates the partition function for every subsequence
 void RNA::calc_partition() {
+    std::clock_t start = std::clock();
+
     double exp_neg_gstack_gloop_over_RT = exp(-invRT*(energies[3] - g_loop));
 
     // entry i,j stores (bound) parition values for subsequence with ending bases i and j
@@ -187,10 +191,16 @@ void RNA::calc_partition() {
             }
         }
     }
+    std::clock_t end = std::clock();
+    std::ofstream file("part.txt", std::ios_base::app);
+    file << 1e6 * (end-start)/CLOCKS_PER_SEC << " ";
+    file.close();
     return;
 }
 
 void RNA::calc_gradient() {
+    std::clock_t start = std::clock();
+    
     double exp_neg_gstack_gloop_over_RT = exp(-invRT*(energies[3] - g_loop));
 
     // entry i,j stores (bound) parition gradients for subsequence with ending bases i and j
@@ -276,11 +286,17 @@ void RNA::calc_gradient() {
             }
         }
     }
+    std::clock_t end = std::clock();
+    std::ofstream file("grad.txt", std::ios_base::app);
+    file << 1e6 * (end-start)/CLOCKS_PER_SEC << " ";
+    file.close();
     return;
 }
 
 // XXX need to add in conditions for circular sequences
 void RNA::calc_bpp() {
+    std::clock_t start = std::clock();
+    
     double exp_neg_gstack_over_RT = exp(-invRT*energies[3]);
     double exp_neg_gstack_gloop_over_RT = exp(-invRT*(energies[3] - g_loop));
     double full_part = partition[0][nn-1];
@@ -317,11 +333,16 @@ void RNA::calc_bpp() {
             }
         }
     }
+    std::clock_t end = std::clock();
+    std::ofstream file("bpp.txt", std::ios_base::app);
+    file << 1e6 * (end-start)/CLOCKS_PER_SEC << " ";
+    file.close();
     return;
 }
 
 // XXX need to add circular sequence conditions
 void RNA::calc_bpp_gradient() {
+    std::clock_t start = std::clock();
     double exp_neg_gstack_over_RT = exp(-invRT*energies[3]);
     double full_part = partition[0][nn-1];
     vect grad_full_part = gradient[0][nn-1];
@@ -390,6 +411,10 @@ void RNA::calc_bpp_gradient() {
             }
         }
     }
+    std::clock_t end = std::clock();
+    std::ofstream file("bpp_grad.txt", std::ios_base::app);
+    file << 1e6 * (end-start)/CLOCKS_PER_SEC << " ";
+    file.close();
     return;
 }
 
