@@ -5,7 +5,7 @@
 #include <vector>
 #include <cmath>
 #include <ctime>
-#include <fstream>
+//#include <fstream>
 
 typedef std::vector< std::vector< std::valarray<double> > > tensor;
 typedef std::vector< std::valarray<double> > matrix;
@@ -21,18 +21,22 @@ const double exp_neg_gloop_over_RT = exp(-invRT*g_loop);
 
 /* Public Functions */
 
-RNA::RNA(std::string seq, bool type, vect ener, bool wantBPP) { 
+RNA::RNA(std::string seq, bool type, vect ener, bool wantBPP, bool grad) { 
     isCircular = type;
     calcBPP = wantBPP;
+    calcGrad = grad;
     sequence = seq;
     nn = seq.length();
     energies = ener;
     calc_gBasePair();
+    //std::clock_t start = std::clock();
     calc_partition();
-    calc_gradient();
+    //std::clock_t end = std::clock();
+    //std::cout << (end-start)/CLOCKS_PER_SEC << std::endl;
+    if (calcGrad) { calc_gradient(); }
     if (calcBPP) {
         calc_bpp();
-        calc_bpp_gradient();
+        if (calcGrad) { calc_bpp_gradient(); }
     }
 }
 
@@ -54,11 +58,11 @@ void RNA::update_energy(vect ener) {
     energies = ener;
     calc_gBasePair();
     calc_partition();
-    calc_gradient();
+    if (calcGrad) { calc_gradient(); }
     if (calcBPP) {
         calc_bpp();
+        if (calcGrad) { calc_bpp_gradient(); }
     }
-    return;
 }
 
 matrix RNA::get_bpp_full() { return bpp; }
@@ -86,7 +90,6 @@ void RNA::calc_gBasePair(){
             }
         }
     }
-    return;
 }
 
 int RNA::find_energy_index(int i, int j) {
@@ -116,8 +119,7 @@ double RNA::interior(double gBP, char loop) {
 
 // calculates the partition function for every subsequence
 void RNA::calc_partition() {
-    std::clock_t start = std::clock();
-
+    //std::clock_t start = std::clock();
     double exp_neg_gstack_gloop_over_RT = exp(-invRT*(energies[3] - g_loop));
 
     // entry i,j stores (bound) parition values for subsequence with ending bases i and j
@@ -191,16 +193,14 @@ void RNA::calc_partition() {
             }
         }
     }
-    std::clock_t end = std::clock();
-    std::ofstream file("part.txt", std::ios_base::app);
-    file << 1e6 * (end-start)/CLOCKS_PER_SEC << " ";
-    file.close();
-    return;
+    //std::clock_t end = std::clock();
+    //std::ofstream file("part.txt", std::ios_base::app);
+    //file << 1e6 * (end-start)/CLOCKS_PER_SEC << " ";
+    //file.close();
 }
 
 void RNA::calc_gradient() {
-    std::clock_t start = std::clock();
-    
+    //std::clock_t start = std::clock();
     double exp_neg_gstack_gloop_over_RT = exp(-invRT*(energies[3] - g_loop));
 
     // entry i,j stores (bound) parition gradients for subsequence with ending bases i and j
@@ -286,17 +286,15 @@ void RNA::calc_gradient() {
             }
         }
     }
-    std::clock_t end = std::clock();
-    std::ofstream file("grad.txt", std::ios_base::app);
-    file << 1e6 * (end-start)/CLOCKS_PER_SEC << " ";
-    file.close();
-    return;
+    //std::clock_t end = std::clock();
+    //std::ofstream file("grad.txt", std::ios_base::app);
+    //file << 1e6 * (end-start)/CLOCKS_PER_SEC << " ";
+    //file.close();
 }
 
 // XXX need to add in conditions for circular sequences
 void RNA::calc_bpp() {
-    std::clock_t start = std::clock();
-    
+    //std::clock_t start = std::clock();
     double exp_neg_gstack_over_RT = exp(-invRT*energies[3]);
     double exp_neg_gstack_gloop_over_RT = exp(-invRT*(energies[3] - g_loop));
     double full_part = partition[0][nn-1];
@@ -309,6 +307,8 @@ void RNA::calc_bpp() {
     for (int ii = 0; ii < nn; ii++) { // index for first base
         for (int jj = nn-1; jj > ii + 3; jj--) { // index for second base
             double q_bound_ij = partitionBound[ii][jj];
+            double qbij_over_full = q_bound_ij / full_part;
+
             // storage matrix entry
             for (int kk = jj+1; kk < nn; kk++) {
                 double q_bound_ik = partitionBound[ii][kk];
@@ -317,13 +317,37 @@ void RNA::calc_bpp() {
                 }
             }
             if (ii == 0 && jj == nn-1) {
-                bpp[ii][jj] = q_bound_ij / full_part;
+                bpp[ii][jj] = qbij_over_full;
             } else if (ii == 0) {
-                bpp[ii][jj] = q_bound_ij * partition[jj+1][nn-1] / full_part;
+                bpp[ii][jj] = qbij_over_full * partition[jj+1][nn-1];
             } else if (jj == nn-1) {
-                bpp[ii][jj] = partition[0][ii-1] * q_bound_ij / full_part;
+                bpp[ii][jj] = partition[0][ii-1] * qbij_over_full;
             } else {
-                bpp[ii][jj] = partition[0][ii-1] * q_bound_ij * partition[jj+1][nn-1] / full_part; // if base-pair is not enclosed
+                if (isCircular) {
+                    bpp[ii][jj] = qbij_over_full * exp(-invRT * g_base_pair[ii][jj]);
+                    // summing over left interior loops
+                    for (int kk = 0; kk < ii-3; kk++) {
+                        for (int ll = kk+3; ll < ii; ll++) {
+                            if ((kk+nn == jj+1) && (ll == ii-1)) { //stacked pair
+                                bpp[ii][jj] += partitionBound[kk][ll] * exp_neg_gstack_over_RT; 
+                            } else { 
+                                bpp[ii][jj] += partitionBound[kk][ll] * exp_neg_gloop_over_RT;
+                            }
+                        }
+                    }
+                    // summing over right interior loops
+                    for (int kk = ii+1; kk < nn-3; kk++) {
+                        for (int ll = kk+3; ll < nn; ll++) {
+                            if ((kk == jj+1) && (ll+1 == ii+nn)) { //stacked pair
+                                bpp[ii][jj] += partitionBound[kk][ll] * exp_neg_gstack_over_RT; 
+                            } else { 
+                                bpp[ii][jj] += partitionBound[kk][ll] * exp_neg_gloop_over_RT;
+                            }
+                        }
+                    }
+                } else {
+                    bpp[ii][jj] = partition[0][ii-1] * qbij_over_full * partition[jj+1][nn-1]; // if base-pair is not enclosed
+                }
                 for (int ll = 0; ll < ii; ll++) {
                     bpp[ii][jj] += q_bound_ij * bppS[ll][jj];
                 }
@@ -333,16 +357,15 @@ void RNA::calc_bpp() {
             }
         }
     }
-    std::clock_t end = std::clock();
-    std::ofstream file("bpp.txt", std::ios_base::app);
-    file << 1e6 * (end-start)/CLOCKS_PER_SEC << " ";
-    file.close();
-    return;
+    //std::clock_t end = std::clock();
+    //std::ofstream file("bpp.txt", std::ios_base::app);
+    //file << 1e6 * (end-start)/CLOCKS_PER_SEC << " ";
+    //file.close();
 }
 
 // XXX need to add circular sequence conditions
 void RNA::calc_bpp_gradient() {
-    std::clock_t start = std::clock();
+    //std::clock_t start = std::clock();
     double exp_neg_gstack_over_RT = exp(-invRT*energies[3]);
     double full_part = partition[0][nn-1];
     vect grad_full_part = gradient[0][nn-1];
@@ -411,10 +434,9 @@ void RNA::calc_bpp_gradient() {
             }
         }
     }
-    std::clock_t end = std::clock();
-    std::ofstream file("bpp_grad.txt", std::ios_base::app);
-    file << 1e6 * (end-start)/CLOCKS_PER_SEC << " ";
-    file.close();
-    return;
+    //std::clock_t end = std::clock();
+    //std::ofstream file("bpp_grad.txt", std::ios_base::app);
+    //file << 1e6 * (end-start)/CLOCKS_PER_SEC << " ";
+    //file.close();
 }
 
