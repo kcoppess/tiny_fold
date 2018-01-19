@@ -30,6 +30,15 @@ class RNA {
         double hairpin(double gHP);
         double interior(double gBP, char loop);
         void calc_gradient();
+        
+        void sum_left_interior_loops(int ii, int jj, double qbij_over_full, double exp_neg_gstack_over_RT);
+        void sum_right_interior_loops(int ii, int jj, double qbij_over_full, double exp_neg_gstack_over_RT);
+        void sum_exterior_basepairs(int ii, int jj, double q_bound_ij, double exp_neg_gstack_over_RT);
+        void gradient_sum_exterior_basepairs(int ii, int jj, double q_bound_ij, double exp_neg_gstack_over_RT);
+        void gradient_sum_right_interior_loops(int ii, int jj, double qbij_over_full, double exp_neg_gstack_over_RT);
+        void gradient_sum_left_interior_loops(int ii, int jj, double qbij_over_full, double exp_neg_gstack_over_RT);
+        void calc_bppS_entry(int ii, int jj);
+        void calc_bppGradientS_entry(int ii, int jj);
         void calc_bpp();
         void calc_bpp_gradient();
 
