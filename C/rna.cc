@@ -332,7 +332,7 @@ void RNA::gradient_sum_left_interior_loops(int ii, int jj, double qbij_over_full
 
 // XXX for circular RNA bpp calculations
 void RNA::sum_right_interior_loops(int ii, int jj, double qbij_over_full, double exp_neg_gstack_over_RT) {
-    for (int kk = ii+1; kk < nn-3; kk++) {
+    for (int kk = jj+1; kk < nn-3; kk++) {
         for (int ll = kk+3; ll < nn; ll++) {
             if ((kk == jj+1) && (ll+1 == ii+nn)) { //stacked pair
                 bpp[ii][jj] += qbij_over_full * partitionBound[kk][ll] * exp_neg_gstack_over_RT; 
@@ -348,9 +348,10 @@ void RNA::gradient_sum_right_interior_loops(int ii, int jj, double qbij_over_ful
     vect d_q_bound_ij = gradientBound[ii][jj];
     double term;
     double full_part = partition[0][nn-1];
-
-    for (int kk = ii+1; kk < nn-3; kk++) {
+    //std::cout << ii << " " << jj << ": entered" << std::endl;
+    for (int kk = jj+1; kk < nn-3; kk++) {
         for (int ll = kk+3; ll < nn; ll++) {
+            //std::cout << kk << " " << ll << ": made it in" << std::endl;
             if ((kk == jj+1) && (ll+1 == ii+nn)) { //stacked pair
                 term = qbij_over_full * partitionBound[kk][ll] * exp_neg_gstack_over_RT; 
                 bppGradient[ii][jj][3] += -invRT * term;
