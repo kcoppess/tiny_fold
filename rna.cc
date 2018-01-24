@@ -147,7 +147,7 @@ void RNA::calc_partition() {
                 } else {
                     partitionBound[ii][jj] = hairpin(g_base_pair[ii][jj]);
                 }
-            }
+            } else { partitionBound[ii][jj] = 0; }
             for (int dd = ii+1; dd < jj-4; dd++) { // iterate over all possible rightmost pairs
                 for (int ee = dd+4; ee < jj; ee++) { // i < d < e < j and d,e must be at least 4 positions apart
                     char interior_loop_type = ' ';
@@ -167,6 +167,8 @@ void RNA::calc_partition() {
                     }
                 }
             }
+
+            partitionS[ii][jj] = 0.0;
             // partitionS recursion
             for (int dd = ii+4; dd < jj+1; dd++) { // iterate over all rightmost pairs with base i (beginning of subsequence)
                 partitionS[ii][jj] += partitionBound[ii][dd];
@@ -226,7 +228,7 @@ void RNA::calc_gradient() {
                 } else {
                     gradientBound[ii][jj][ind] = -invRT*hairpin(g_base_pair[ii][jj]);
                 }
-            }
+            } else { gradientBound[ii][jj][0] = gradientBound[ii][jj][1] = gradientBound[ii][jj][2] = gradientBound[ii][jj][3] = 0.0; }
             for (int dd = ii+1; dd < jj-4; dd++) { // iterate over all possible rightmost pairs
                 for (int ee = dd+4; ee < jj; ee++) { // i < d < e < j and d,e must be at least 4 positions apart
                     char interior_loop_type = ' ';
@@ -256,6 +258,7 @@ void RNA::calc_gradient() {
                     }
                 }
             }
+            gradientS[ii][jj][0] = gradientS[ii][jj][1] = gradientS[ii][jj][2] = gradientS[ii][jj][3] = 0.0;
             // partitionS recursion
             for (int dd = ii+4; dd < jj+1; dd++) { // iterate over all rightmost pairs with base i (beginning of subsequence)
                 gradientS[ii][jj] += gradientBound[ii][dd];
@@ -404,6 +407,7 @@ void RNA::gradient_sum_exterior_basepairs(int ii, int jj, double q_bound_ij, dou
 }
 
 void RNA::calc_bppS_entry(int ii, int jj) {
+    bppS[ii][jj] = 0.0;
     for (int kk = jj+1; kk < nn; kk++) {
         double q_bound_ik = partitionBound[ii][kk];
         if (q_bound_ik) {
@@ -413,6 +417,7 @@ void RNA::calc_bppS_entry(int ii, int jj) {
 }
 
 void RNA::calc_bppGradientS_entry(int ii, int jj) {
+    bppGradientS[ii][jj][0] = bppGradientS[ii][jj][1] = bppGradientS[ii][jj][2] = bppGradientS[ii][jj][3] = 0.0;
     for (int kk = jj+1; kk < nn; kk++) {
         double q_bound_ik = partitionBound[ii][kk];
         if (q_bound_ik) {
@@ -428,7 +433,6 @@ void RNA::calc_bppGradientS_entry(int ii, int jj) {
     }
 }
 
-// XXX need to add in conditions for circular sequences
 void RNA::calc_bpp() {
     //std::clock_t start = std::clock();
     double exp_neg_gstack_over_RT = exp(-invRT*energies[3]);
@@ -473,7 +477,7 @@ void RNA::calc_bpp() {
     //file.close();
 }
 
-// XXX need to add circular sequence conditions
+// XXX NEED TO FIX circular sequence conditions
 void RNA::calc_bpp_gradient() {
     //std::clock_t start = std::clock();
     double exp_neg_gstack_over_RT = exp(-invRT*energies[3]);
