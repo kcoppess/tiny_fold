@@ -8,7 +8,7 @@ import numpy as np
 
 L = 50
 
-sequence_length = range(5,L+1)
+sequence_length = np.arange(5,L+1)
 seq_len_3 = []
 bpp = []
 bpp_grad = []
@@ -57,7 +57,7 @@ cbpp_grad = 1e-3*np.mean(c_bpp_grad+c_part+c_grad+c_bpp, axis=1)
 cpart = 1e-3*np.mean(c_part, axis=1)
 cgrad = 1e-3*np.mean(c_grad+c_part, axis=1)
 
-#plt.plot(sequence_length, seq_len_3, 'k')
+plt.plot(sequence_length, (1/2.500e6)*sequence_length**4, 'k')
 plt.plot(sequence_length, cpart, 'b',linewidth=2, label='Partition')
 plt.plot(sequence_length, cgrad, 'c',linewidth=2, label='Partition Gradient')
 plt.plot(sequence_length, cbpp, 'r',linewidth=2, label='Basepair Probability (BPP)')

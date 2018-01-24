@@ -8,3 +8,9 @@
 *catch.hpp
 *.swp
 *.txt
+*.ninja
+*.cmake
+Makefile
+pybind11
+*.so
+CMakeFiles

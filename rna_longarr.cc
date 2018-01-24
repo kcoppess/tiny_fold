@@ -1,3 +1,4 @@
+// incomplete version using long arrays rather than matrix and tensor
 #include "rna.hh"
 #include <iostream>
 #include <string>
@@ -24,19 +25,23 @@ const double exp_neg_gloop_over_RT = exp(-invRT*g_loop);
 RNA::RNA(std::string seq, bool type, vect ener, bool wantBPP, bool grad) { 
     isCircular = type;
     calcBPP = wantBPP;
-    calcGrad = grad;
     sequence = seq;
     nn = seq.length();
     energies = ener;
+
+    g_base_pair = new double[nn*nn];
+    everything = new double[5*nn*nn];
+    everything_gradient = new double[5*nn*nn][4];
+
     calc_gBasePair();
     //std::clock_t start = std::clock();
     calc_partition();
     //std::clock_t end = std::clock();
     //std::cout << (end-start)/CLOCKS_PER_SEC << std::endl;
-    if (calcGrad) { calc_gradient(); }
+    if (grad) { calc_gradient(); }
     if (calcBPP) {
         calc_bpp();
-        if (calcGrad) { calc_bpp_gradient(); }
+        if (grad) { calc_bpp_gradient(); }
     }
 }
 
@@ -58,10 +63,9 @@ void RNA::update_energy(vect ener) {
     energies = ener;
     calc_gBasePair();
     calc_partition();
-    if (calcGrad) { calc_gradient(); }
+    calc_gradient();
     if (calcBPP) {
         calc_bpp();
-        if (calcGrad) { calc_bpp_gradient(); }
     }
 }
 
@@ -76,7 +80,6 @@ vect RNA::get_bpp_gradient(int i, int j) { return bppGradient[i][j]; }
 /* Private Functions */
 
 void RNA::calc_gBasePair(){
-    g_base_pair.resize(nn, vect(nn));
     for (int ii=0; ii < nn; ii++) {
         for (int jj=0; jj < nn; jj++) {
             if ((sequence[ii] == 'A' && sequence[jj] == 'U') || (sequence[ii] == 'U' && sequence[jj] == 'A')) {
@@ -100,7 +103,6 @@ int RNA::find_energy_index(int i, int j) {
     }
     return -1;
 }
-
 
 // returns hairpin loop energy
 double RNA::hairpin(double gHP) {
@@ -293,138 +295,6 @@ void RNA::calc_gradient() {
     //file.close();
 }
 
-// XXX for circular RNA bpp calculations
-void RNA::sum_left_interior_loops(int ii, int jj, double qbij_over_full, double exp_neg_gstack_over_RT) {
-    for (int kk = 0; kk < ii-3; kk++) {
-        for (int ll = kk+3; ll < ii; ll++) {
-            if ((kk+nn == jj+1) && (ll == ii-1)) { //stacked pair
-                bpp[ii][jj] += qbij_over_full * partitionBound[kk][ll] * exp_neg_gstack_over_RT; 
-            } else { 
-                bpp[ii][jj] += qbij_over_full * partitionBound[kk][ll] * exp_neg_gloop_over_RT;
-            }
-        }
-    }
-}
-
-void RNA::gradient_sum_left_interior_loops(int ii, int jj, double qbij_over_full, double exp_neg_gstack_over_RT) {
-    vect grad_full_part = gradient[0][nn-1];
-    vect d_q_bound_ij = gradientBound[ii][jj];
-    double term;
-    double full_part = partition[0][nn-1];
-
-    for (int kk = 0; kk < ii-3; kk++) {
-        for (int ll = kk+3; ll < ii; ll++) {
-            if ((kk+nn == jj+1) && (ll == ii-1)) { //stacked pair
-                term = qbij_over_full * partitionBound[kk][ll] * exp_neg_gstack_over_RT; 
-                bppGradient[ii][jj][3] += -invRT * term;
-                bppGradient[ii][jj] += qbij_over_full * gradientBound[kk][ll] * exp_neg_gstack_over_RT;
-                bppGradient[ii][jj] += d_q_bound_ij * partitionBound[kk][ll] * exp_neg_gstack_over_RT / full_part;
-                bppGradient[ii][jj] += -term * grad_full_part / full_part;
-            } else { 
-                term = qbij_over_full * partitionBound[kk][ll] * exp_neg_gloop_over_RT; 
-                bppGradient[ii][jj] += qbij_over_full * gradientBound[kk][ll] * exp_neg_gloop_over_RT;
-                bppGradient[ii][jj] += d_q_bound_ij * partitionBound[kk][ll] * exp_neg_gloop_over_RT / full_part;
-                bppGradient[ii][jj] += -term * grad_full_part / full_part;
-            }
-        }
-    }
-}
-
-// XXX for circular RNA bpp calculations
-void RNA::sum_right_interior_loops(int ii, int jj, double qbij_over_full, double exp_neg_gstack_over_RT) {
-    std::cout << ii << " " << jj << ": entered" << std::endl;
-    for (int kk = jj+1; kk < nn-3; kk++) {
-        for (int ll = kk+3; ll < nn; ll++) {
-            std::cout << kk << " " << ll << ": made it in" << std::endl;
-            if ((kk == jj+1) && (ll+1 == ii+nn)) { //stacked pair
-                bpp[ii][jj] += qbij_over_full * partitionBound[kk][ll] * exp_neg_gstack_over_RT; 
-            } else { 
-                bpp[ii][jj] += qbij_over_full * partitionBound[kk][ll] * exp_neg_gloop_over_RT;
-            }
-        }
-    }
-}
-
-void RNA::gradient_sum_right_interior_loops(int ii, int jj, double qbij_over_full, double exp_neg_gstack_over_RT) {
-    vect grad_full_part = gradient[0][nn-1];
-    vect d_q_bound_ij = gradientBound[ii][jj];
-    double term;
-    double full_part = partition[0][nn-1];
-    std::cout << ii << " " << jj << ": entered" << std::endl;
-    for (int kk = jj+1; kk < nn-3; kk++) {
-        for (int ll = kk+3; ll < nn; ll++) {
-            std::cout << kk << " " << ll << ": made it in" << std::endl;
-            if ((kk == jj+1) && (ll+1 == ii+nn)) { //stacked pair
-                term = qbij_over_full * partitionBound[kk][ll] * exp_neg_gstack_over_RT; 
-                bppGradient[ii][jj][3] += -invRT * term;
-                bppGradient[ii][jj] += qbij_over_full * gradientBound[kk][ll] * exp_neg_gstack_over_RT;
-                bppGradient[ii][jj] += d_q_bound_ij * partitionBound[kk][ll] * exp_neg_gstack_over_RT / full_part;
-                bppGradient[ii][jj] += -term * grad_full_part / full_part;
-            } else { 
-                term = qbij_over_full * partitionBound[kk][ll] * exp_neg_gloop_over_RT; 
-                bppGradient[ii][jj] += qbij_over_full * gradientBound[kk][ll] * exp_neg_gloop_over_RT;
-                bppGradient[ii][jj] += d_q_bound_ij * partitionBound[kk][ll] * exp_neg_gloop_over_RT / full_part;
-                bppGradient[ii][jj] += -term * grad_full_part / full_part;
-            }
-        }
-    }
-}
-
-void RNA::sum_exterior_basepairs(int ii, int jj, double q_bound_ij, double exp_neg_gstack_over_RT) {
-    for (int ll = 0; ll < ii; ll++) {
-        bpp[ii][jj] += q_bound_ij * bppS[ll][jj];
-    }
-    if (partitionBound[ii-1][jj+1]) { // stacked pairs
-        bpp[ii][jj] += -q_bound_ij * exp(-invRT * g_base_pair[ii-1][jj+1]) * bpp[ii-1][jj+1] * (exp_neg_gloop_over_RT - exp_neg_gstack_over_RT) / partitionBound[ii-1][jj+1];
-    }
-}
-
-void RNA::gradient_sum_exterior_basepairs(int ii, int jj, double q_bound_ij, double exp_neg_gstack_over_RT) {
-    vect d_q_bound_ij = gradientBound[ii][jj];
-    for (int ll = 0; ll < ii; ll++) {
-        bppGradient[ii][jj] += q_bound_ij * bppGradientS[ll][jj] + d_q_bound_ij * bppS[ll][jj];
-    }
-    if (partitionBound[ii-1][jj+1]) { // stacked pairs
-        double bpp_ij = bpp[ii-1][jj+1];
-        double q_denom = partitionBound[ii-1][jj+1];
-        double exp_neg_invRT_gbp_ij = exp(-invRT * g_base_pair[ii-1][jj+1]);
-
-        double term = -q_bound_ij * exp_neg_invRT_gbp_ij * bpp_ij * (exp_neg_gloop_over_RT - exp_neg_gstack_over_RT) / q_denom;
-        bppGradient[ii][jj] += (-d_q_bound_ij * exp_neg_invRT_gbp_ij * bpp_ij * (exp_neg_gloop_over_RT - exp_neg_gstack_over_RT)) / q_denom;
-        bppGradient[ii][jj] += -q_bound_ij * exp_neg_invRT_gbp_ij * bppGradient[ii-1][jj+1] * (exp_neg_gloop_over_RT - exp_neg_gstack_over_RT) / q_denom;
-        bppGradient[ii][jj] += -term * gradientBound[ii-1][jj+1] / q_denom;
-        
-        int adj_energy_index = find_energy_index(ii-1, jj+1);
-        bppGradient[ii][jj][adj_energy_index] += -invRT * term;
-        bppGradient[ii][jj][3] += -invRT * q_bound_ij * exp_neg_invRT_gbp_ij * bpp_ij * exp_neg_gstack_over_RT / q_denom;
-    }
-}
-
-void RNA::calc_bppS_entry(int ii, int jj) {
-    for (int kk = jj+1; kk < nn; kk++) {
-        double q_bound_ik = partitionBound[ii][kk];
-        if (q_bound_ik) {
-            bppS[ii][jj] += exp(-invRT * g_base_pair[ii][kk]) * exp_neg_gloop_over_RT * bpp[ii][kk] / q_bound_ik;
-        }
-    }
-}
-
-void RNA::calc_bppGradientS_entry(int ii, int jj) {
-    for (int kk = jj+1; kk < nn; kk++) {
-        double q_bound_ik = partitionBound[ii][kk];
-        if (q_bound_ik) {
-            int energy_index = find_energy_index(ii, kk);
-            vect qbik_grad = gradientBound[ii][kk];
-            double exp_neg_gbp_over_RT = exp(-invRT * g_base_pair[ii][kk]);
-            double term = exp_neg_gbp_over_RT * exp_neg_gloop_over_RT * bpp[ii][kk] / q_bound_ik;
-            
-            bppGradientS[ii][jj][energy_index] += -invRT * term;
-            bppGradientS[ii][jj] += exp_neg_gbp_over_RT * exp_neg_gloop_over_RT * bppGradient[ii][kk] / q_bound_ik;
-            bppGradientS[ii][jj] += -term * qbik_grad / q_bound_ik;
-        }
-    }
-}
-
 // XXX need to add in conditions for circular sequences
 void RNA::calc_bpp() {
     //std::clock_t start = std::clock();
@@ -440,27 +310,27 @@ void RNA::calc_bpp() {
     for (int ii = 0; ii < nn; ii++) { // index for first base
         for (int jj = nn-1; jj > ii + 3; jj--) { // index for second base
             double q_bound_ij = partitionBound[ii][jj];
-            double qbij_over_full = q_bound_ij / full_part;
-
-            calc_bppS_entry(ii, jj);
-            
-            if (isCircular) {
-                bpp[ii][jj] = qbij_over_full * exp(-invRT * g_base_pair[ii][jj]);
-                sum_left_interior_loops(ii, jj, qbij_over_full, exp_neg_gstack_over_RT);
-                sum_right_interior_loops(ii, jj, qbij_over_full, exp_neg_gstack_over_RT);
-            } else {
-                if (ii == 0 && jj == nn-1) {
-                    bpp[ii][jj] = qbij_over_full;
-                } else if (ii == 0) {
-                    bpp[ii][jj] = qbij_over_full * partition[jj+1][nn-1];
-                } else if (jj == nn-1) {
-                    bpp[ii][jj] = partition[0][ii-1] * qbij_over_full;
-                } else {
-                    bpp[ii][jj] = partition[0][ii-1] * qbij_over_full * partition[jj+1][nn-1]; // if base-pair is not enclosed
+            // storage matrix entry
+            for (int kk = jj+1; kk < nn; kk++) {
+                double q_bound_ik = partitionBound[ii][kk];
+                if (q_bound_ik) {
+                    bppS[ii][jj] += exp(-invRT * g_base_pair[ii][kk]) * exp_neg_gloop_over_RT * bpp[ii][kk] / q_bound_ik;
                 }
             }
-            if (ii != 0 && jj != nn-1) {
-                sum_exterior_basepairs(ii, jj, q_bound_ij, exp_neg_gstack_over_RT);
+            if (ii == 0 && jj == nn-1) {
+                bpp[ii][jj] = q_bound_ij / full_part;
+            } else if (ii == 0) {
+                bpp[ii][jj] = q_bound_ij * partition[jj+1][nn-1] / full_part;
+            } else if (jj == nn-1) {
+                bpp[ii][jj] = partition[0][ii-1] * q_bound_ij / full_part;
+            } else {
+                bpp[ii][jj] = partition[0][ii-1] * q_bound_ij * partition[jj+1][nn-1] / full_part; // if base-pair is not enclosed
+                for (int ll = 0; ll < ii; ll++) {
+                    bpp[ii][jj] += q_bound_ij * bppS[ll][jj];
+                }
+                if (partitionBound[ii-1][jj+1]) { // stacked pairs
+                    bpp[ii][jj] += -q_bound_ij * exp(-invRT * g_base_pair[ii-1][jj+1]) * bpp[ii-1][jj+1] * (exp_neg_gloop_over_RT - exp_neg_gstack_over_RT) / partitionBound[ii-1][jj+1];
+                }
             }
         }
     }
@@ -487,42 +357,57 @@ void RNA::calc_bpp_gradient() {
             int energy_index = find_energy_index(ii, jj);
             
             double q_bound_ij = partitionBound[ii][jj];
-            double qbij_over_full = q_bound_ij / full_part;
             vect d_q_bound_ij = gradientBound[ii][jj];
             double q_0i = partition[0][ii-1];
             double q_jN = 0;
             if (jj < nn-1) { q_jN = partition[jj+1][nn-1]; }
 
-            calc_bppGradientS_entry(ii, jj);
-
-            if (isCircular) {
-                term = qbij_over_full * exp(-invRT * g_base_pair[ii][jj]);
-                bppGradient[ii][jj] = d_q_bound_ij * exp(-invRT * g_base_pair[ii][jj]) / full_part;
-                bppGradient[ii][jj] += -term * grad_full_part / full_part;
-                bppGradient[ii][jj][energy_index] += -invRT * term;
-                
-                gradient_sum_left_interior_loops(ii, jj, qbij_over_full, exp_neg_gstack_over_RT);
-                gradient_sum_right_interior_loops(ii, jj, qbij_over_full, exp_neg_gstack_over_RT);
-            } else {
-                if (ii == 0 && jj == nn-1) {
-                    term = qbij_over_full;
-                    bppGradient[ii][jj] = (d_q_bound_ij - term * grad_full_part) / full_part;
-                } else if (ii == 0) {
-                    term = qbij_over_full * q_jN;
-                    bppGradient[ii][jj] = (d_q_bound_ij * q_jN) / full_part + qbij_over_full * gradient[jj+1][nn-1];
-                    bppGradient[ii][jj] += -term * grad_full_part / full_part;
-                } else if (jj == nn-1) {
-                    term = q_0i * qbij_over_full;
-                    bppGradient[ii][jj] = (gradient[0][ii-1] * qbij_over_full) + q_0i * d_q_bound_ij / full_part;
-                    bppGradient[ii][jj] += -term * grad_full_part / full_part;
-                } else {
-                    term = q_0i * qbij_over_full * q_jN; // if base-pair is not enclosed
-                    bppGradient[ii][jj] = (gradient[0][ii-1] * qbij_over_full * q_jN) + (q_0i * d_q_bound_ij * q_jN / full_part) + q_0i * qbij_over_full * gradient[jj+1][nn-1];
-                    bppGradient[ii][jj] += -term * grad_full_part / full_part;
+            // storage matrix entry
+            for (int kk = jj+1; kk < nn; kk++) {
+                int ik_energy_index = find_energy_index(ii, kk);
+                double q_bound_ik = partitionBound[ii][kk];
+                if (q_bound_ik) {
+                    double exp_neg_invRT_gbp_ik = exp(-invRT * g_base_pair[ii][kk]);
+                    term = exp_neg_invRT_gbp_ik * exp_neg_gloop_over_RT * bpp[ii][kk] / q_bound_ik;
+                    
+                    bppGradientS[ii][jj] += exp_neg_invRT_gbp_ik * exp_neg_gloop_over_RT * bppGradient[ii][kk] / q_bound_ik;
+                    bppGradientS[ii][jj] += -term * gradientBound[ii][kk] / q_bound_ik;
+                    bppGradientS[ii][jj][ik_energy_index] += -invRT * term;
                 }
             }
-            if (ii != 0 && jj != nn-1) {
-                gradient_sum_exterior_basepairs(ii, jj, q_bound_ij, exp_neg_gstack_over_RT);
+            if (ii == 0 && jj == nn-1) {
+                term = q_bound_ij / full_part;
+                bppGradient[ii][jj] = (d_q_bound_ij - term * grad_full_part) / full_part;
+            } else if (ii == 0) {
+                term = q_bound_ij * q_jN / full_part;
+                bppGradient[ii][jj] = (d_q_bound_ij * q_jN + q_bound_ij * gradient[jj+1][nn-1]) / full_part;
+                bppGradient[ii][jj] += -term * grad_full_part / full_part;
+            } else if (jj == nn-1) {
+                term = q_0i * q_bound_ij / full_part;
+                bppGradient[ii][jj] = (gradient[0][ii-1] * q_bound_ij + q_0i * d_q_bound_ij) / full_part;
+                bppGradient[ii][jj] += -term * grad_full_part / full_part;
+            } else {
+                term = q_0i * q_bound_ij * q_jN / full_part; // if base-pair is not enclosed
+                bppGradient[ii][jj] = (gradient[0][ii-1] * q_bound_ij * q_jN + q_0i * d_q_bound_ij * q_jN + q_0i * q_bound_ij * gradient[jj+1][nn-1]) / full_part;
+                bppGradient[ii][jj] += -term * grad_full_part / full_part;
+                for (int ll = 0; ll < ii; ll++) {
+                    double bpp_s_lj = bppS[ll][jj];
+                    bppGradient[ii][jj] += d_q_bound_ij * bpp_s_lj + q_bound_ij * bppGradientS[ll][jj];
+                }
+                if (partitionBound[ii-1][jj+1]) { // stacked pairs
+                    double bpp_ij = bpp[ii-1][jj+1];
+                    double q_denom = partitionBound[ii-1][jj+1];
+                    double exp_neg_invRT_gbp_ij = exp(-invRT * g_base_pair[ii-1][jj+1]);
+
+                    term = -q_bound_ij * exp_neg_invRT_gbp_ij * bpp_ij * (exp_neg_gloop_over_RT - exp_neg_gstack_over_RT) / q_denom;
+                    bppGradient[ii][jj] += (-d_q_bound_ij * exp_neg_invRT_gbp_ij * bpp_ij * (exp_neg_gloop_over_RT - exp_neg_gstack_over_RT)) / q_denom;
+                    bppGradient[ii][jj] += -q_bound_ij * exp_neg_invRT_gbp_ij * bppGradient[ii-1][jj+1] * (exp_neg_gloop_over_RT - exp_neg_gstack_over_RT) / q_denom;
+                    bppGradient[ii][jj] += -term * gradientBound[ii-1][jj+1] / q_denom;
+                    
+                    int adj_energy_index = find_energy_index(ii-1, jj+1);
+                    bppGradient[ii][jj][adj_energy_index] += -invRT * term;
+                    bppGradient[ii][jj][3] += -invRT * q_bound_ij * exp_neg_invRT_gbp_ij * bpp_ij * exp_neg_gstack_over_RT / q_denom;
+                }
             }
         }
     }
