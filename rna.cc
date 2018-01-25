@@ -31,15 +31,33 @@ RNA::RNA(std::string seq, bool type, vect ener, bool wantBPP, bool grad) {
     sequence = seq;
     nn = seq.length();
     energies = ener;
+    
+    g_base_pair.resize(nn, vect(nn));
     calc_gBasePair();
-    //std::clock_t start = std::clock();
+    
+    partitionBound.resize(nn, vect(nn));
+    partition.resize(nn, vect(nn));
+    for (int ii = 1; ii < nn; ii++) {
+        partition[ii][ii-1] = 1;
+    }
+    partitionS.resize(nn, vect(nn)); // storage matrix
     calc_partition();
-    //std::clock_t end = std::clock();
-    //std::cout << (end-start)/CLOCKS_PER_SEC << std::endl;
-    if (calcGrad) { calc_gradient(); }
+    
+    if (calcGrad) { 
+        gradientBound.resize(nn, matrix(nn, vect(4)));
+        gradientS.resize(nn, matrix(nn, vect(4))); // storage matrix
+        gradient.resize(nn, matrix(nn, vect(4)));
+        calc_gradient(); 
+    }
     if (calcBPP) {
+        bpp.resize(nn, vect(nn));
+        bppS.resize(nn, vect(nn)); // storage matrix
         calc_bpp();
-        if (calcGrad) { calc_bpp_gradient(); }
+        if (calcGrad) { 
+            bppGradientS.resize(nn, matrix(nn, vect(4))); // storage matrix
+            bppGradient.resize(nn, matrix(nn, vect(4)));
+            calc_bpp_gradient(); 
+        }
     }
 }
 
@@ -79,7 +97,7 @@ vect RNA::get_bpp_gradient(int i, int j) { return bppGradient[i][j]; }
 /* Private Functions */
 
 void RNA::calc_gBasePair(){
-    g_base_pair.resize(nn, vect(nn));
+    //g_base_pair.resize(nn, vect(nn));
     for (int ii=0; ii < nn; ii++) {
         for (int jj=0; jj < nn; jj++) {
             if ((sequence[ii] == 'A' && sequence[jj] == 'U') || (sequence[ii] == 'U' && sequence[jj] == 'A')) {
@@ -127,12 +145,12 @@ void RNA::calc_partition() {
     double exp_neg_gstack_gloop_over_RT = exp(-invRT*(energies[3] - g_loop));
 
     // entry i,j stores (bound) parition values for subsequence with ending bases i and j
-    partitionBound.resize(nn, vect(nn));
-    partition.resize(nn, vect(nn));
-    for (int ii = 1; ii < nn; ii++) {
-        partition[ii][ii-1] = 1;
-    }
-    partitionS.resize(nn, vect(nn)); // storage matrix
+    //partitionBound.resize(nn, vect(nn));
+    //partition.resize(nn, vect(nn));
+    //for (int ii = 1; ii < nn; ii++) {
+    //    partition[ii][ii-1] = 1;
+    //}
+    //partitionS.resize(nn, vect(nn)); // storage matrix
 
     for (int ll = 1; ll < nn+1; ll++) { //iterating over all subsequence lengths
         for (int ii = 0; ii < nn-ll+1; ii++) { //iterating over all starting positions for subsequences
@@ -210,9 +228,9 @@ void RNA::calc_gradient() {
     double exp_neg_gstack_gloop_over_RT = exp(-invRT*(energies[3] - g_loop));
 
     // entry i,j stores (bound) parition gradients for subsequence with ending bases i and j
-    gradientBound.resize(nn, matrix(nn, vect(4)));
-    gradientS.resize(nn, matrix(nn, vect(4))); // storage matrix
-    gradient.resize(nn, matrix(nn, vect(4)));
+    //gradientBound.resize(nn, matrix(nn, vect(4)));
+    //gradientS.resize(nn, matrix(nn, vect(4))); // storage matrix
+    //gradient.resize(nn, matrix(nn, vect(4)));
 
     for (int ll = 1; ll < nn+1; ll++) { //iterating over all subsequence lengths
         for (int ii = 0; ii < nn-ll+1; ii++) { //iterating over all starting positions for subsequences
@@ -340,10 +358,10 @@ void RNA::gradient_sum_left_interior_loops(int ii, int jj, double qbij_over_full
 
 // XXX for circular RNA bpp calculations
 void RNA::sum_right_interior_loops(int ii, int jj, double qbij_over_full, double exp_neg_gstack_over_RT) {
-    std::cout << ii << " " << jj << ": entered" << std::endl;
+    //std::cout << ii << " " << jj << ": entered" << std::endl;
     for (int kk = jj+1; kk < nn-3; kk++) {
         for (int ll = kk+3; ll < nn; ll++) {
-            std::cout << kk << " " << ll << ": made it in" << std::endl;
+            //std::cout << kk << " " << ll << ": made it in" << std::endl;
             if ((kk == jj+1) && (ll+1 == ii+nn)) { //stacked pair
                 bpp[ii][jj] += qbij_over_full * partitionBound[kk][ll] * exp_neg_gstack_over_RT; 
             } else { 
@@ -358,10 +376,10 @@ void RNA::gradient_sum_right_interior_loops(int ii, int jj, double qbij_over_ful
     vect d_q_bound_ij = gradientBound[ii][jj];
     double term;
     double full_part = partition[0][nn-1];
-    std::cout << ii << " " << jj << ": entered" << std::endl;
+    //std::cout << ii << " " << jj << ": entered" << std::endl;
     for (int kk = jj+1; kk < nn-3; kk++) {
         for (int ll = kk+3; ll < nn; ll++) {
-            std::cout << kk << " " << ll << ": made it in" << std::endl;
+            //std::cout << kk << " " << ll << ": made it in" << std::endl;
             if ((kk == jj+1) && (ll+1 == ii+nn)) { //stacked pair
                 term = qbij_over_full * partitionBound[kk][ll] * exp_neg_gstack_over_RT; 
                 bppGradient[ii][jj][3] += -invRT * term;
@@ -442,8 +460,8 @@ void RNA::calc_bpp() {
     double full_part = partition[0][nn-1];
     
     // base pair probability
-    bpp.resize(nn, vect(nn));
-    bppS.resize(nn, vect(nn)); // storage matrix
+    //bpp.resize(nn, vect(nn));
+    //bppS.resize(nn, vect(nn)); // storage matrix
     
     // need to start with outside pairs and work way in
     for (int ii = 0; ii < nn; ii++) { // index for first base
@@ -487,8 +505,8 @@ void RNA::calc_bpp_gradient() {
     vect grad_full_part = gradient[0][nn-1];
     double term;
     
-    bppGradientS.resize(nn, matrix(nn, vect(4))); // storage matrix
-    bppGradient.resize(nn, matrix(nn, vect(4)));
+    //bppGradientS.resize(nn, matrix(nn, vect(4))); // storage matrix
+    //bppGradient.resize(nn, matrix(nn, vect(4)));
 
     // need to start with outside pairs and work way in
     for (int ii = 0; ii < nn; ii++) { // index for first base
