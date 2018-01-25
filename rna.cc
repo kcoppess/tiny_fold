@@ -219,6 +219,7 @@ void RNA::calc_gradient() {
             int jj = ii + ll - 1; // ending position for subsequence
             int ind = find_energy_index(ii, jj); // keeps track of which energy parameter
             
+            gradientBound[ii][jj] = {0, 0, 0, 0};
             // partitionBound recursion
             if (jj-ii > 3 && g_base_pair[ii][jj]) { // if possible hairpin: at least 4 positions apart and able to form a base pair
                 if (isCircular) {
@@ -228,7 +229,7 @@ void RNA::calc_gradient() {
                 } else {
                     gradientBound[ii][jj][ind] = -invRT*hairpin(g_base_pair[ii][jj]);
                 }
-            } else { gradientBound[ii][jj][0] = gradientBound[ii][jj][1] = gradientBound[ii][jj][2] = gradientBound[ii][jj][3] = 0.0; }
+            }
             for (int dd = ii+1; dd < jj-4; dd++) { // iterate over all possible rightmost pairs
                 for (int ee = dd+4; ee < jj; ee++) { // i < d < e < j and d,e must be at least 4 positions apart
                     char interior_loop_type = ' ';
@@ -258,11 +259,12 @@ void RNA::calc_gradient() {
                     }
                 }
             }
-            gradientS[ii][jj][0] = gradientS[ii][jj][1] = gradientS[ii][jj][2] = gradientS[ii][jj][3] = 0.0;
+            gradientS[ii][jj] = {0, 0, 0, 0};
             // partitionS recursion
             for (int dd = ii+4; dd < jj+1; dd++) { // iterate over all rightmost pairs with base i (beginning of subsequence)
                 gradientS[ii][jj] += gradientBound[ii][dd];
             }
+            gradient[ii][jj] = {0, 0, 0, 0};
             // partition recursion
             if (isCircular && ii == 0 && jj == nn-1) { // closing the chain for circular RNA
                 for (int dd = 0; dd < nn-4; dd++) {
@@ -417,7 +419,7 @@ void RNA::calc_bppS_entry(int ii, int jj) {
 }
 
 void RNA::calc_bppGradientS_entry(int ii, int jj) {
-    bppGradientS[ii][jj][0] = bppGradientS[ii][jj][1] = bppGradientS[ii][jj][2] = bppGradientS[ii][jj][3] = 0.0;
+    bppGradientS[ii][jj] = {0, 0, 0, 0};
     for (int kk = jj+1; kk < nn; kk++) {
         double q_bound_ik = partitionBound[ii][kk];
         if (q_bound_ik) {

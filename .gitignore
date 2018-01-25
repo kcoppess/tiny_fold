@@ -14,5 +14,6 @@ Makefile
 pybind11
 *.so
 CMakeFiles
+*.ninja*
 
 !CMakeLists.txt
