@@ -25,12 +25,12 @@ bool almost_equal(double x, double y) {
 bool vect_almost_equal(vect x, vect y) {
     double diff2 = 0;
     for (int i = 0; i < 4; i++) {
-        cout << x[i] << " " <<  y[i] << endl;
+        //cout << x[i] << " " <<  y[i] << endl;
         diff2 += pow(x[i] - y[i],2);
     }
     return sqrt(diff2) < tol;
 }
-/*
+
 TEST_CASE("Partition function for linear sequences", "[partition_linear]") {
     double part[5] = {1,1.0000124791631115,1.0001857787828816,1.0021716139156089,1.0233027459871049};
     for (int i = 0; i < 5; i++) {
@@ -123,7 +123,7 @@ TEST_CASE("Basepair probabilities for circular sequences", "[bpp_circular]") {
         }
     }
 }
-*/
+
 TEST_CASE("Gradient of basepair probabilities for linear sequences","[grad_bpp_linear]") {
     tensor aaaaa(5, matrix(5, vect(4)));
     tensor aaaau(5, matrix(5, vect(4)));
@@ -172,7 +172,7 @@ TEST_CASE("Gradient of basepair probabilities for linear sequences","[grad_bpp_l
     }
 
 }
-
+/*
 TEST_CASE("Gradient of basepair probabilities for circular sequences","[grad_bpp_circular]") {
     tensor aaaaa(5, matrix(5, vect(4)));
     tensor aaaau(5, matrix(5, vect(4)));
@@ -216,4 +216,4 @@ TEST_CASE("Gradient of basepair probabilities for circular sequences","[grad_bpp
     }
 
 }
-
+*/

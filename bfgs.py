@@ -1,33 +1,76 @@
 import numpy as np
 import tinyfold as tf
 import scipy.optimize as so
+import matplotlib.pyplot as plt
+import filtering as fil
 
 rna = []
-energies = [5.69, 6., 4.09, -7.09]
-actual_bpp = []
 
-f = open("sequences_train.txt", 'r')
-b = f.readline()
-i = 0
-while b:
-    rna.append(tf.RNA(b, False, energies, True, True))
-    actual_bpp.append(np.array(rna[i].get_bpp_full()))
-    b = f.readline()
-    i += 1
-f.close()
+alpha = 1.
 
-def cost(param):
+w = 1e-22
+energies = np.arange(-50,-46)
+
+'''BPP TRAINING DATA'''
+num_training_examples = 50
+actual_bpp = [] # storing bpp for closing stem of hairpin for each input sequence
+#energy_param = p.energies
+sequences = fil.Sequence[:num_training_examples] #p.training_sequences[:10]
+for i in range(num_training_examples):
+    rna.append(tf.RNA(sequences[i], False, list(energies), True, True))
+    actual_bpp.append((1e-9) / fil.KDnoligand[i])
+print 'finished gathering training data'
+
+guess = np.array([5.69, 6., 4.09, -7.09])
+
+def cost(param, i, j):
     l2 = 0.
-    for mm in range(50):
-        rna[mm].update_energy(param)
-        l2 += np.sum((actual_bpp[mm] - np.array(rna[mm].get_bpp_full())) ** 2)
+    for mm in range(i, j):
+        rna[mm].update_energy(list(param))
+        bp = fil.closing_bp_indices[mm]
+        l2 += alpha * (actual_bpp[mm] - rna[mm].get_bpp(bp[0], bp[1])) ** 2
+    prior = guess - param
+    l2 += w * np.dot(prior, prior)
     return l2
 
-def cost_gradient(param):
+def cost_gradient(param, i, j):
     l2_grad = np.zeros(4)
-    for mm in range(50):
-        rna[mm].update_energy(param)
-        l2_grad += np.sum(np.sum(- 2 * np.dot((actual_bpp[mm] - np.array(rna[mm].get_bpp_full())), np.array(rna[mm].get_bpp_gradient_full())), axis=0), axis = 0)
+    for mm in range(i, j):
+        rna[mm].update_energy(list(param))
+        bp = fil.closing_bp_indices[mm]
+        grad = np.array(rna[mm].get_bpp_gradient(bp[0], bp[1]))
+        l2_grad += -2 * alpha * (actual_bpp[mm] - rna[mm].get_bpp(bp[0], bp[1])) * grad
+    prior = guess - param
+    l2_grad += -2 * w * prior
     return l2_grad
 
-print cost_gradient(energies)
+param_iterations = []
+prior_updates = []
+def check(x):
+    param_iterations.append(cost(x,0,num_training_examples))
+    new = guess - x
+    prior_updates.append(w * np.dot(new, new))
+    print str(cost(x,0,num_training_examples)) + ' ' + str(cost_gradient(x, 0, num_training_examples)) + ' ' + str(x)
+    return
+
+
+par = np.arange(-10,-6)
+t = 0
+while t < 1:
+    for p in range(5):
+        optimization = so.minimize(cost, par, args=(p*10, (p+1)*10), method='BFGS', jac=cost_gradient, tol=1e-20, callback=check)
+        par = optimization.x
+    t += 1
+optimization = so.minimize(cost, par, args=(0, num_training_examples), method='BFGS', jac=cost_gradient, tol=1e-20, callback=check)
+par = optimization.x
+
+print optimization
+
+n = len(prior_updates)
+k = range(n)
+
+plt.plot(k, param_iterations, label = 'Loss')
+plt.plot(k, prior_updates, label = 'Prior')
+plt.legend()
+plt.xlabel('Iteration')
+plt.show()

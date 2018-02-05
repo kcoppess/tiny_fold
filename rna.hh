@@ -6,6 +6,8 @@
 typedef std::vector< std::vector< std::valarray<double> > > tensor;
 typedef std::vector< std::valarray<double> > matrix;
 typedef std::valarray<double> vect;
+typedef std::vector< std::valarray<int> > int_matrix;
+typedef std::valarray<int> int_vect;
 
 class RNA {
     public:
@@ -22,13 +24,19 @@ class RNA {
         double get_bpp(int i, int j);
         tensor get_bpp_gradient_full();
         vect get_bpp_gradient(int i, int j);
+
+        double get_log_partition();
+        vect get_log_gradient();
+        double get_log_bpp(int i, int j);
+        vect get_log_bpp_gradient(int i, int j);
+        matrix get_log_bpp_full();
+        tensor get_log_bpp_gradient_full();
     
     private:
         void calc_partition();
         void calc_gBasePair();
-        int find_energy_index(int i, int j);
-        double hairpin(double gHP);
-        double interior(double gBP, char loop);
+        double hairpin(int gHP);
+        double interior(int gBP, char loop);
         void calc_gradient();
         
         void sum_left_interior_loops(int ii, int jj, double qbij_over_full, double exp_neg_gstack_over_RT);
@@ -48,7 +56,8 @@ class RNA {
         int nn; // number of bases
         std::string sequence;
         vect energies;
-        matrix g_base_pair;
+        vect exp_neg_energy_over_RT;
+        int_matrix g_base_pair;
         //partition matrices
         matrix partitionBound;
         matrix partitionS;
