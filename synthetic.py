@@ -42,9 +42,9 @@ def cost_gradient(param, i, j):
     l2_grad = np.zeros(4)
     for mm in range(i, j):
         rna[mm].update_energy(list(param))
-        grad = np.array(rna[mm].get_bpp_gradient_full())
+        grad = np.array(rna[mm].get_log_bpp_gradient_full())
         grad[np.isnan(grad)] = 0.
-        log_bpp = np.array(rna[mm].get_bpp_full())
+        log_bpp = np.array(rna[mm].get_log_bpp_full())
         log_bpp[np.isinf(log_bpp)] = 0.
         term = (actual_bpp[mm] - log_bpp)
         for ll in range(4):
@@ -68,20 +68,20 @@ par = np.arange(-10,-6)
 
 def r(param):
     rna[0].update_energy(list(param))
-    return rna[0].get_log_partition() #get_log_bpp(0,6)
+    return rna[0].get_log_partition()#bpp(0,6)
 
 def r_grad(param):
     rna[0].update_energy(list(param))
-    return rna[0].get_log_gradient() #get_log_bpp_gradient(0,6)
+    return rna[0].get_log_gradient()#bpp_gradient(0,6)
 
 #print so.check_grad(cost, cost_gradient, par, 0, 10)
-#print so.check_grad(r, r_grad, par)
+print so.check_grad(r, r_grad, par)
 #print r_grad(par) - so.approx_fprime(par, r, 1e-11)
 '''
 t = 0
 while t < 1:
-    for p in range(5):
-        optimization = so.minimize(cost, par, args=(p*10, (p+1)*10), method='BFGS', jac=cost_gradient, tol=1e-15, callback=check)
+    for p in range(10):
+        optimization = so.minimize(cost, par, args=(p*5, (p+1)*5), method='BFGS', jac=cost_gradient, tol=1e-15, callback=check)
         par = optimization.x
     t += 1
 optimization = so.minimize(cost, par, args=(0, 50), method='BFGS', jac=cost_gradient, tol=1e-15, callback=check)
@@ -96,8 +96,10 @@ for w in range(50):
     log_bpp = np.array(rna[w].get_bpp_full())
     log_bpp[np.isinf(log_bpp)] = 0.
     N += np.count_nonzero(log_bpp)
-    rmsd += np.sum((actual_bpp[w] - log_bpp)**2)
-print np.sqrt(rmsd/N)
+    residual = np.absolute((actual_bpp[w] - log_bpp)/actual_bpp[w])
+    residual[np.isnan(residual)] = 0.
+    rmsd += np.sum(residual)
+print rmsd/N
 
 n = len(prior_updates)
 k = range(n)

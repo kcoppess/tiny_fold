@@ -12,7 +12,7 @@ w = 1e-22
 energies = np.arange(-50,-46)
 
 '''BPP TRAINING DATA'''
-num_training_examples = 50
+num_training_examples = 100
 actual_bpp = [] # storing bpp for closing stem of hairpin for each input sequence
 #energy_param = p.energies
 sequences = fil.Sequence[:num_training_examples] #p.training_sequences[:10]
@@ -65,6 +65,21 @@ optimization = so.minimize(cost, par, args=(0, num_training_examples), method='B
 par = optimization.x
 
 print optimization
+
+final = []
+for w in range(num_training_examples):
+    bp = fil.closing_bp_indices[w]
+    final.append(rna[w].get_bpp(bp[0],bp[1]))
+
+y = np.array(final)
+x = np.array(actual_bpp)
+
+yhat = x
+ybar = np.sum(y)/num_training_examples
+ssreg = np.sum((yhat-ybar)**2)
+sstot = np.sum((y - ybar)**2)
+rsquared = 1 - (ssreg/sstot)
+print rsquared
 
 n = len(prior_updates)
 k = range(n)
