@@ -12,7 +12,7 @@ Sequence = np.loadtxt("eterna_sequences.txt", dtype = 'string', delimiter='\t')
 KDnoligand = np.loadtxt("synthetic_kd.txt", dtype = 'float', delimiter='\t')
 closing_bp_indices = np.loadtxt("ms2_hairpin_closing.txt", delimiter='\t')
 
-energies = np.array([ 11.38738862,   1.4780686 ,   1.51900683,  -1.2795793 ]) #synthetic data
+energies = np.array([ 11.99979688,   0.39980603,   0.29989286,  -0.99984654]) #synthetic data
 #energies1 = np.array([ 12.58417779,   2.94746754,   6.77340698,   0.83004456]) # trained on even more filtered data, w = 0.01
 #energies2 = np.array([ 13.58526261,   3.47537565,   2.04322166,  -2.29645279]) # w = 0.01
 

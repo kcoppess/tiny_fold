@@ -5,7 +5,7 @@
 #include <vector>
 #include <cmath>
 #include <ctime>
-
+/*
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -35,7 +35,7 @@ PYBIND11_PLUGIN(tinyfold) {
         .def("get_log_bpp_full", &RNA::get_log_bpp_full, "returns log(bpp) for all base pair combinations")
         .def("get_log_bpp_gradient_full", &RNA::get_log_bpp_gradient_full, "returns gradient of log(bpp) for all base pair combinations");
 }
-
+*/
 typedef std::vector< std::vector< std::valarray<double> > > tensor;
 typedef std::vector< std::valarray<double> > matrix;
 typedef std::valarray<double> vect;
@@ -50,9 +50,17 @@ const double invRT = 1./(R*T);
 const double g_loop = 1.; // kcal/mol
 const double exp_neg_gloop_over_RT = exp(-invRT*g_loop);
 
+const char adenine = 'A';
+const char uracil = 'U';
+const char guanine = 'G';
+const char cytosine = 'C';
+
+//enum BASE = {adenine = "A", uracil = "U", guanine = "G", cytosine = "C"};
+
 /* Public Functions */
 
 RNA::RNA(std::string seq, bool type, vect ener, bool wantBPP, bool grad) { 
+    num_energies = ener.size();
     isCircular = type;
     calcBPP = wantBPP;
     calcGrad = grad;
@@ -73,9 +81,9 @@ RNA::RNA(std::string seq, bool type, vect ener, bool wantBPP, bool grad) {
     calc_partition();
     
     if (calcGrad) { 
-        gradientBound.resize(nn, matrix(nn, vect(4)));
-        gradientS.resize(nn, matrix(nn, vect(4))); // storage matrix
-        gradient.resize(nn, matrix(nn, vect(4)));
+        gradientBound.resize(nn, matrix(nn, vect(num_energies)));
+        gradientS.resize(nn, matrix(nn, vect(num_energies))); // storage matrix
+        gradient.resize(nn, matrix(nn, vect(num_energies)));
         calc_gradient(); 
     }
     if (calcBPP) {
@@ -83,8 +91,8 @@ RNA::RNA(std::string seq, bool type, vect ener, bool wantBPP, bool grad) {
         bppS.resize(nn, vect(nn)); // storage matrix
         calc_bpp();
         if (calcGrad) { 
-            bppGradientS.resize(nn, matrix(nn, vect(4))); // storage matrix
-            bppGradient.resize(nn, matrix(nn, vect(4)));
+            bppGradientS.resize(nn, matrix(nn, vect(num_energies))); // storage matrix
+            bppGradient.resize(nn, matrix(nn, vect(num_energies)));
             calc_bpp_gradient(); 
         }
     }
@@ -156,6 +164,38 @@ tensor RNA::get_log_bpp_gradient_full() {
 void RNA::calc_gBasePair(){
     for (int ii=0; ii < nn; ii++) {
         for (int jj=0; jj < nn; jj++) {
+            if (sequence[ii] == adenine && sequence[jj] == uracil) {
+                if (sequence[ii+1] == adenine && sequence[jj-1] == uracil) { g_base_pair[ii][jj] = 1;
+                } else if (sequence[ii+1] == uracil && sequence[jj-1] == adenine) { g_base_pair[ii][jj] = 2;
+                } else if (sequence[ii+1] == guanine && sequence[jj-1] == cytosine) { g_base_pair[ii][jj] = 4;
+                } else if (sequence[ii+1] == cytosine && sequence[jj-1] == guanine) { g_base_pair[ii][jj] = 6;
+                } else { g_base_pair[ii][jj] = num_energies + 10; } // still want to indicate that it's possible to form a base-pair
+            } else if (sequence[ii] == uracil && sequence[jj] == adenine) {
+                if (sequence[ii+1] == adenine && sequence[jj-1] == uracil) { g_base_pair[ii][jj] = 3;
+                } else if (sequence[ii+1] == uracil && sequence[jj-1] == adenine) { g_base_pair[ii][jj] = 1;
+                } else if (sequence[ii+1] == guanine && sequence[jj-1] == cytosine) { g_base_pair[ii][jj] = 5;
+                } else if (sequence[ii+1] == cytosine && sequence[jj-1] == guanine) { g_base_pair[ii][jj] = 7;
+                } else { g_base_pair[ii][jj] = num_energies + 10; }
+            } else if (sequence[ii] == guanine && sequence[jj] == cytosine) {
+                if (sequence[ii+1] == adenine && sequence[jj-1] == uracil) { g_base_pair[ii][jj] = 7;
+                } else if (sequence[ii+1] == uracil && sequence[jj-1] == adenine) { g_base_pair[ii][jj] = 6;
+                } else if (sequence[ii+1] == guanine && sequence[jj-1] == cytosine) { g_base_pair[ii][jj] = 9;
+                } else if (sequence[ii+1] == cytosine && sequence[jj-1] == guanine) { g_base_pair[ii][jj] = 10;
+                } else { g_base_pair[ii][jj] = num_energies + 10; }
+            } else if (sequence[ii] == cytosine && sequence[jj] == guanine) {
+                if (sequence[ii+1] == adenine && sequence[jj-1] == uracil) { g_base_pair[ii][jj] = 5;
+                } else if (sequence[ii+1] == uracil && sequence[jj-1] == adenine) { g_base_pair[ii][jj] = 4;
+                } else if (sequence[ii+1] == guanine && sequence[jj-1] == cytosine) { g_base_pair[ii][jj] = 8;
+                } else if (sequence[ii+1] == cytosine && sequence[jj-1] == guanine) { g_base_pair[ii][jj] = 9;
+                } else { g_base_pair[ii][jj] = num_energies + 10; }
+            } else {
+                g_base_pair[ii][jj] = 0;
+            }
+        }
+    }
+    /* for toy model
+    for (int ii=0; ii < nn; ii++) {
+        for (int jj=0; jj < nn; jj++) {
             if ((sequence[ii] == 'A' && sequence[jj] == 'U') || (sequence[ii] == 'U' && sequence[jj] == 'A')) {
                 g_base_pair[ii][jj] = 1;
             } else if ((sequence[ii] == 'U' && sequence[jj] == 'G') || (sequence[ii] == 'G' && sequence[jj] == 'U')) {
@@ -167,11 +207,12 @@ void RNA::calc_gBasePair(){
             }
         }
     }
+    */
 }
 
 // returns hairpin loop energy
 double RNA::hairpin(int gHP) {
-   return exp_neg_energy_over_RT[gHP - 1] * exp_neg_gloop_over_RT;//exp(-invRT * (energies[gHP - 1] + g_loop));
+    return exp_neg_energy_over_RT[gHP - 1] * exp_neg_gloop_over_RT;//exp(-invRT * (energies[gHP - 1] + g_loop));
 }
 
 double RNA::interior(int gBP, char loop) {
@@ -187,27 +228,72 @@ double RNA::interior(int gBP, char loop) {
 
 // calculates the partition function for every subsequence
 void RNA::calc_partition() {
-    double exp_neg_gstack_gloop_over_RT = exp_neg_energy_over_RT[3] / exp_neg_gloop_over_RT;//exp(-invRT*(energies[3] - g_loop));
+    //XXX toy: double exp_neg_gstack_gloop_over_RT = exp_neg_energy_over_RT[3] / exp_neg_gloop_over_RT;//exp(-invRT*(energies[3] - g_loop));
+    bool AU, otherAU;
+    double exp_close_loop = exp_neg_energy_over_RT[10] * exp_neg_gloop_over_RT;
+    double exp_close_loop_terminalAU = exp_close_loop * exp_neg_energy_over_RT[11];
 
     for (int ll = 1; ll < nn+1; ll++) { //iterating over all subsequence lengths
         for (int ii = 0; ii < nn-ll+1; ii++) { //iterating over all starting positions for subsequences
             int jj = ii + ll - 1; // ending position for subsequence
-            
+            AU = ((sequence[ii] == adenine && sequence[jj] == uracil) || (sequence[ii] == uracil && sequence[jj] == adenine));
+            //XXX std::cout << ii << jj << " " << AU << std::endl;
+            otherAU = ((sequence[ii+1] == adenine && sequence[jj-1] == uracil) || (sequence[ii+1] == uracil && sequence[jj-1] == adenine));
+
             // partitionBound recursion
             if (jj-ii > 3 && g_base_pair[ii][jj]) { // if possible hairpin: at least 4 positions apart and able to form a base pair
-                if (isCircular) {
+                //XXX: std::cout << "enter" << std::endl;
+                if (isCircular) { //FIXME check to see if this actually works in the new energy model
                     if ((ii + nn) - jj > 3) { // checking that base pair can form and bases are at least 4 positions apart on both sides
-                        //partitionBound[ii][jj] = hairpin(g_base_pair[ii][jj]);
-                        partitionBound[ii][jj] = partition[ii+1][jj-1] * interior(g_base_pair[ii][jj], 'l');
+                        // toy: partitionBound[ii][jj] = hairpin(g_base_pair[ii][jj]);
+                        if (AU && !otherAU) { // checking if there was already a terminal AU pair
+                            partitionBound[ii][jj] = partition[ii+1][jj-1] * exp_close_loop_terminalAU;
+                        } else {
+                            partitionBound[ii][jj] = partition[ii+1][jj-1] * exp_close_loop;
+                        }
+                        // toy: partitionBound[ii][jj] += (partition[ii+1][jj-1] - 1) * interior(g_base_pair[ii][jj], 'l');
                         if (g_base_pair[ii+1][jj-1]) {
-                            partitionBound[ii][jj] += partitionBound[ii+1][jj-1] * (interior(g_base_pair[ii][jj], 's') - interior(g_base_pair[ii][jj], 'l'));
+                            int index = g_base_pair[ii+1][jj-1] - 1;
+                            // toy: partitionBound[ii][jj] += partitionBound[ii+1][jj-1] * (interior(g_base_pair[ii][jj], 's') - interior(g_base_pair[ii][jj], 'l'));
+                            if (AU && otherAU) {
+                                partitionBound[ii][jj] += partitionBound[ii+1][jj-1] * exp_neg_energy_over_RT[index];
+                                partitionBound[ii][jj] += - partitionBound[ii+1][jj-1] * exp_close_loop_terminalAU;
+                            } else if (AU && !otherAU) {
+                                partitionBound[ii][jj] += partitionBound[ii+1][jj-1] * exp_neg_energy_over_RT[index] * exp_neg_energy_over_RT[11];
+                                partitionBound[ii][jj] += - partitionBound[ii+1][jj-1] * exp_close_loop_terminalAU;
+                            } else if (!AU && otherAU) {
+                                partitionBound[ii][jj] += partitionBound[ii+1][jj-1] * exp_neg_energy_over_RT[index] / exp_neg_energy_over_RT[11];
+                                partitionBound[ii][jj] += - partitionBound[ii+1][jj-1] * exp_close_loop;
+                            } else {
+                                partitionBound[ii][jj] += partitionBound[ii+1][jj-1] * exp_neg_energy_over_RT[index];
+                                partitionBound[ii][jj] += - partitionBound[ii+1][jj-1] * exp_close_loop;
+                            }
                         }
                     }
                 } else {
-                    //partitionBound[ii][jj] = hairpin(g_base_pair[ii][jj]);
-                    partitionBound[ii][jj] = partition[ii+1][jj-1] * interior(g_base_pair[ii][jj], 'l');
+                    // toy: partitionBound[ii][jj] = hairpin(g_base_pair[ii][jj]);
+                    if (AU) {
+                        partitionBound[ii][jj] = partition[ii+1][jj-1] * exp_close_loop_terminalAU;
+                    } else {
+                        partitionBound[ii][jj] = partition[ii+1][jj-1] * exp_close_loop;
+                    }
+                    // toy: partitionBound[ii][jj] += (partition[ii+1][jj-1] - 1) * interior(g_base_pair[ii][jj], 'l');
                     if (g_base_pair[ii+1][jj-1]) {
-                        partitionBound[ii][jj] += partitionBound[ii+1][jj-1] * (interior(g_base_pair[ii][jj], 's') - interior(g_base_pair[ii][jj], 'l'));
+                        int index = g_base_pair[ii][jj] - 1;
+                        // toy: partitionBound[ii][jj] += partitionBound[ii+1][jj-1] * (interior(g_base_pair[ii][jj], 's') - interior(g_base_pair[ii][jj], 'l'));
+                        if (AU && otherAU) {
+                            partitionBound[ii][jj] += partitionBound[ii+1][jj-1] * exp_neg_energy_over_RT[index];
+                            partitionBound[ii][jj] += - partitionBound[ii+1][jj-1] * exp_close_loop_terminalAU;
+                        } else if (AU && !otherAU) {
+                            partitionBound[ii][jj] += partitionBound[ii+1][jj-1] * exp_neg_energy_over_RT[index] * exp_neg_energy_over_RT[11];
+                            partitionBound[ii][jj] += - partitionBound[ii+1][jj-1] * exp_close_loop_terminalAU;
+                        } else if (!AU && otherAU) {
+                            partitionBound[ii][jj] += partitionBound[ii+1][jj-1] * exp_neg_energy_over_RT[index] / exp_neg_energy_over_RT[11];
+                            partitionBound[ii][jj] += - partitionBound[ii+1][jj-1] * exp_close_loop;
+                        } else {
+                            partitionBound[ii][jj] += partitionBound[ii+1][jj-1] * exp_neg_energy_over_RT[index];
+                            partitionBound[ii][jj] += - partitionBound[ii+1][jj-1] * exp_close_loop;
+                        }
                     }
                 }
             } else { partitionBound[ii][jj] = 0; }
@@ -241,6 +327,9 @@ void RNA::calc_partition() {
             // partition recursion
             partition[ii][jj] = 1.0;
             if (isCircular && ii == 0 && jj == nn-1) { // closing the chain for circular RNA
+                partition[ii][jj] += 100000000000000000000000.0;
+                // FIXME need to address circular sequences
+                /* toy
                 for (int dd = 0; dd < nn-4; dd++) {
                     if (dd == 0) {
                         partition[ii][jj] += partitionS[0][jj]*exp_neg_gloop_over_RT;
@@ -252,6 +341,7 @@ void RNA::calc_partition() {
                         }
                     }
                 }
+                */
             } else {
                 for (int dd = ii; dd < jj-3; dd++) { // iterating over all possible rightmost pairs
                     if (dd == 0) { // to deal with issue of wrapping around in the last iteration

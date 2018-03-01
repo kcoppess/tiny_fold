@@ -54,6 +54,7 @@ class RNA {
         bool calcBPP;
         bool calcGrad;
         int nn; // number of bases
+        int num_energies; // number of energy parameters
         std::string sequence;
         vect energies;
         vect exp_neg_energy_over_RT;
