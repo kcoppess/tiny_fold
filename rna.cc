@@ -229,7 +229,7 @@ double RNA::interior(int gBP, char loop) {
 // calculates the partition function for every subsequence
 void RNA::calc_partition() {
     //XXX toy: double exp_neg_gstack_gloop_over_RT = exp_neg_energy_over_RT[3] / exp_neg_gloop_over_RT;//exp(-invRT*(energies[3] - g_loop));
-    bool AU, otherAU;
+    bool AU;
     double exp_close_loop = exp_neg_energy_over_RT[10] * exp_neg_gloop_over_RT;
     double exp_close_loop_terminalAU = exp_close_loop * exp_neg_energy_over_RT[11];
 
@@ -238,7 +238,6 @@ void RNA::calc_partition() {
             int jj = ii + ll - 1; // ending position for subsequence
             AU = ((sequence[ii] == adenine && sequence[jj] == uracil) || (sequence[ii] == uracil && sequence[jj] == adenine));
             //XXX std::cout << ii << jj << " " << AU << std::endl;
-            otherAU = ((sequence[ii+1] == adenine && sequence[jj-1] == uracil) || (sequence[ii+1] == uracil && sequence[jj-1] == adenine));
 
             // partitionBound recursion
             if (jj-ii > 3 && g_base_pair[ii][jj]) { // if possible hairpin: at least 4 positions apart and able to form a base pair
@@ -246,24 +245,18 @@ void RNA::calc_partition() {
                 if (isCircular) { //FIXME check to see if this actually works in the new energy model
                     if ((ii + nn) - jj > 3) { // checking that base pair can form and bases are at least 4 positions apart on both sides
                         // toy: partitionBound[ii][jj] = hairpin(g_base_pair[ii][jj]);
-                        if (AU && !otherAU) { // checking if there was already a terminal AU pair
+                        if (AU) {
                             partitionBound[ii][jj] = partition[ii+1][jj-1] * exp_close_loop_terminalAU;
                         } else {
                             partitionBound[ii][jj] = partition[ii+1][jj-1] * exp_close_loop;
                         }
                         // toy: partitionBound[ii][jj] += (partition[ii+1][jj-1] - 1) * interior(g_base_pair[ii][jj], 'l');
                         if (g_base_pair[ii+1][jj-1]) {
-                            int index = g_base_pair[ii+1][jj-1] - 1;
+                            int index = g_base_pair[ii][jj] - 1;
                             // toy: partitionBound[ii][jj] += partitionBound[ii+1][jj-1] * (interior(g_base_pair[ii][jj], 's') - interior(g_base_pair[ii][jj], 'l'));
-                            if (AU && otherAU) {
-                                partitionBound[ii][jj] += partitionBound[ii+1][jj-1] * exp_neg_energy_over_RT[index];
-                                partitionBound[ii][jj] += - partitionBound[ii+1][jj-1] * exp_close_loop_terminalAU;
-                            } else if (AU && !otherAU) {
+                            if (AU) {
                                 partitionBound[ii][jj] += partitionBound[ii+1][jj-1] * exp_neg_energy_over_RT[index] * exp_neg_energy_over_RT[11];
                                 partitionBound[ii][jj] += - partitionBound[ii+1][jj-1] * exp_close_loop_terminalAU;
-                            } else if (!AU && otherAU) {
-                                partitionBound[ii][jj] += partitionBound[ii+1][jj-1] * exp_neg_energy_over_RT[index] / exp_neg_energy_over_RT[11];
-                                partitionBound[ii][jj] += - partitionBound[ii+1][jj-1] * exp_close_loop;
                             } else {
                                 partitionBound[ii][jj] += partitionBound[ii+1][jj-1] * exp_neg_energy_over_RT[index];
                                 partitionBound[ii][jj] += - partitionBound[ii+1][jj-1] * exp_close_loop;
@@ -281,15 +274,9 @@ void RNA::calc_partition() {
                     if (g_base_pair[ii+1][jj-1]) {
                         int index = g_base_pair[ii][jj] - 1;
                         // toy: partitionBound[ii][jj] += partitionBound[ii+1][jj-1] * (interior(g_base_pair[ii][jj], 's') - interior(g_base_pair[ii][jj], 'l'));
-                        if (AU && otherAU) {
-                            partitionBound[ii][jj] += partitionBound[ii+1][jj-1] * exp_neg_energy_over_RT[index];
-                            partitionBound[ii][jj] += - partitionBound[ii+1][jj-1] * exp_close_loop_terminalAU;
-                        } else if (AU && !otherAU) {
+                        if (AU) {
                             partitionBound[ii][jj] += partitionBound[ii+1][jj-1] * exp_neg_energy_over_RT[index] * exp_neg_energy_over_RT[11];
                             partitionBound[ii][jj] += - partitionBound[ii+1][jj-1] * exp_close_loop_terminalAU;
-                        } else if (!AU && otherAU) {
-                            partitionBound[ii][jj] += partitionBound[ii+1][jj-1] * exp_neg_energy_over_RT[index] / exp_neg_energy_over_RT[11];
-                            partitionBound[ii][jj] += - partitionBound[ii+1][jj-1] * exp_close_loop;
                         } else {
                             partitionBound[ii][jj] += partitionBound[ii+1][jj-1] * exp_neg_energy_over_RT[index];
                             partitionBound[ii][jj] += - partitionBound[ii+1][jj-1] * exp_close_loop;
