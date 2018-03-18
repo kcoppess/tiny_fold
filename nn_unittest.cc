@@ -9,7 +9,7 @@ typedef vector< vector< valarray<double> > > tensor;
 typedef vector< valarray<double> > matrix;
 typedef valarray<double> vect;
 
-string seqs[19] = {"AAAAA", "AAAAU", "GAAAC", "GCCCC", "AACCCUU", "AUCCCAU", "UACCCUA", "CUAAAAG",
+string seqs[20] = {"AAAAA", "AUAAA", "AAAAU", "GAAAC", "GCCCC", "AACCCUU", "AUCCCAU", "UACCCUA", "CUAAAAG",
                     "CAAAAUG", "GUAAAAC", "GAAAAUC", "CGAAACG", "GGAAACC", "GCAAAGC", "AAUUUUU", 
                     "AAUUUUUUU", "UAUUUUUUA", "GGCCCCCCC", "CGCCCCCCG"};
 
@@ -32,10 +32,10 @@ bool vect_almost_equal(vect x, vect y) {
 }
 
 TEST_CASE("Partition function for linear sequences", "[partition_linear]") {
-    double part[19] = {1, 1.003811342961177, 1.028885907702594, 1.028885907702594, 1.015670157043195, 1.0079814993687743, 
+    double part[20] = {1, 1, 1.003811342961177, 1.028885907702594, 1.028885907702594, 1.015670157043195, 1.0079814993687743, 
                         1.007925773435268, 1.0346375796305893, 1.0343362346167273, 1.0340816903355927, 1.0338666783457544, 
                         1.0652583475428457, 1.1218674584946227, 1.0631135137836523, 1.0194815000043722, 1.0356200212515567,
-                        1.0270115409114888, 1.2814478393674946, 1.2113566773834208}; //1.220371282812744};
+                        1.0270115409114888, 1.2814478393674946, 1.2113566773834208};
     for (int i = 0; i < 19; i++) {
         RNA loki(seqs[i], false, ener, false, false);
         cout << seqs[i] << endl;

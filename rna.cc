@@ -237,11 +237,9 @@ void RNA::calc_partition() {
         for (int ii = 0; ii < nn-ll+1; ii++) { //iterating over all starting positions for subsequences
             int jj = ii + ll - 1; // ending position for subsequence
             AU = ((sequence[ii] == adenine && sequence[jj] == uracil) || (sequence[ii] == uracil && sequence[jj] == adenine));
-            //XXX std::cout << ii << jj << " " << AU << std::endl;
 
             // partitionBound recursion
             if (jj-ii > 3 && g_base_pair[ii][jj]) { // if possible hairpin: at least 4 positions apart and able to form a base pair
-                //XXX: std::cout << "enter" << std::endl;
                 if (isCircular) { //FIXME check to see if this actually works in the new energy model
                     if ((ii + nn) - jj > 3) { // checking that base pair can form and bases are at least 4 positions apart on both sides
                         // toy: partitionBound[ii][jj] = hairpin(g_base_pair[ii][jj]);
