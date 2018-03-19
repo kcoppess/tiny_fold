@@ -43,6 +43,118 @@ TEST_CASE("Partition function for linear sequences", "[partition_linear]") {
     }
 }
 
+TEST_CASE("Basepair probabilities for linear sequences", "[bpp_linear]") {
+    matrix aaaaa(5, valarray<double>(5));
+    matrix auaaa(5, valarray<double>(5));
+    matrix aaaau(5, valarray<double>(5));
+    matrix gaaac(5, valarray<double>(5));
+    matrix gcccc(5, valarray<double>(5));
+    matrix aacccuu(7, valarray<double>(7));
+    matrix aucccau(7, valarray<double>(7));
+    matrix uacccua(7, valarray<double>(7));
+    matrix cuaaaag(7, valarray<double>(7));
+    matrix caaaaug(7, valarray<double>(7));
+    matrix guaaaac(7, valarray<double>(7));
+    matrix gaaaauc(7, valarray<double>(7));
+    matrix cgaaacg(7, valarray<double>(7));
+    matrix ggaaacc(7, valarray<double>(7));
+    matrix gcaaagc(7, valarray<double>(7));
+    matrix aauuuuu(7, valarray<double>(7));
+    matrix aauuuuuuu(9, valarray<double>(9));
+    matrix uauuuuuua(9, valarray<double>(9));
+    matrix ggccccccc(9, valarray<double>(9));
+    matrix cgccccccg(9, valarray<double>(9));
+    
+    aaaau[0][4] = 0.0037968717806414576;
+    gaaac[0][4] = 0.028074937645023688;
+    gcccc[0][4] = 0.028074937645023688;
+
+    aacccuu[0][5] = 0.0037509712948364982;
+    aacccuu[1][6] = 0.0037509712948364982;
+    aacccuu[1][5] = 0.0041690278964661258;
+    aacccuu[0][6] = 0.0041690278964661258;
+
+    aucccau[0][6] = 0.004137135860339378;
+    aucccau[1][5] = 0.004137135860339378;
+
+    uacccua[0][6] = 0.0040820768577708028;
+    uacccua[1][5] = 0.0040820768577708028;
+
+    cuaaaag[0][6] = 0.029794236432450671;
+    cuaaaag[1][5] = 0.0055591175511419703;
+
+    caaaaug[0][6] = 0.029511575282733005;
+    caaaaug[1][5] = 0.0052693957068543811;
+
+    guaaaac[0][6] = 0.029272684795909918;
+    guaaaac[1][5] = 0.0050245378885999878;
+
+    gaaaauc[0][6] = 0.029070803822275754;
+    gaaaauc[1][5] = 0.0048176140574817472;
+
+    cgaaacg[0][6] = 0.034144242966177643;
+    cgaaacg[1][5] = 0.034144242966177643;
+
+    ggaaacc[0][5] = 0.025748057387594135;
+    ggaaacc[1][6] = 0.025748057387594135;
+    ggaaacc[0][6] = 0.031384933327228394;
+    ggaaacc[1][5] = 0.031384933327228394;
+
+    gcaaagc[0][6] = 0.032195626936620536;
+    gcaaagc[1][5] = 0.032195626936620536;
+
+    aauuuuu[0][4] = 0.0037385111560737021;
+    aauuuuu[0][5] = 0.0037385111560737021;
+    aauuuuu[1][6] = 0.0037385111560737021;
+    aauuuuu[0][6] = 0.0041551790391934915;
+    aauuuuu[1][5] = 0.0041551790391934915;
+
+    aauuuuuuu[0][4] = 0.00368025229617621;
+    aauuuuuuu[0][5] = 0.00368025229617621;
+    aauuuuuuu[1][8] = 0.00368025229617621;
+    aauuuuuuu[0][6] = 0.0040904270608290343;
+    aauuuuuuu[1][7] = 0.0040904270608290343;
+    aauuuuuuu[0][7] = 0.0041044537645134214;
+    aauuuuuuu[1][6] = 0.0041044537645134214;
+    aauuuuuuu[0][8] = 0.0041184804681978085;
+    aauuuuuuu[1][5] = 0.0041184804681978085;
+    
+    uauuuuuua[0][8] = 0.0040345049489403668;
+    uauuuuuua[1][5] = 0.0037252446968115789;
+    uauuuuuua[1][6] = 0.0037252446968115789;
+    uauuuuuua[1][7] = 0.0040062163960097501;
+    uauuuuuua[2][8] = 0.0037111004203462705;
+    uauuuuuua[3][8] = 0.0037111004203462705;
+    uauuuuuua[4][8] = 0.0037111004203462705;
+
+    ggccccccc[0][4] = 0.022541618016111854;
+    ggccccccc[0][5] = 0.022541618016111854;
+    ggccccccc[1][8] = 0.022541618016111854;
+    ggccccccc[0][6] = 0.02747652639862419;
+    ggccccccc[1][7] = 0.02747652639862419;
+    ggccccccc[0][7] = 0.028127661496104728;
+    ggccccccc[1][6] = 0.028127661496104728;
+    ggccccccc[0][8] = 0.028778796593585263;
+    ggccccccc[1][5] = 0.028778796593585263;
+
+    cgccccccg[0][8] = 0.031403823397438947;
+    cgccccccg[1][5] = 0.024534725338365041;
+    cgccccccg[1][6] = 0.024534725338365041;
+    cgccccccg[1][7] = 0.030026201629414186;
+    cgccccccg[2][8] = 0.023845914454352659;
+    cgccccccg[3][8] = 0.023845914454352659;
+    cgccccccg[4][8] = 0.023845914454352659;
+
+    matrix truth[] = {aaaaa, aaaau, gcccc, accccgu, aaccccguu};
+
+    for (int i = 0; i < 5; i++) {
+        RNA thor(seqs[i], false, ener, true, false);
+        for (int j = 0; j < seqs[i].length(); j++) {
+            REQUIRE( vect_almost_equal( thor.get_bpp_full()[j], truth[i][j]) );
+        }
+    }
+}
+
 /*
 TEST_CASE("Partition gradients for linear sequences", "[gradient_part_linear]") {
     matrix grad = {{0,0,0,0},
@@ -54,33 +166,6 @@ TEST_CASE("Partition gradients for linear sequences", "[gradient_part_linear]") 
         RNA bob(seqs[i], false, ener, false, true);
         REQUIRE( vect_almost_equal(bob.get_gradient(), grad[i]) );
     } 
-}
-
-TEST_CASE("Basepair probabilities for linear sequences", "[bpp_linear]") {
-    matrix aaaaa(5, valarray<double>(5));
-    matrix aaaau(5, valarray<double>(5));
-    matrix gcccc(5, valarray<double>(5));
-    matrix accccgu(7, valarray<double>(7));
-    matrix aaccccguu(9, valarray<double>(9));
-    
-    aaaau[0][4] = 1.2479007383961551e-05;
-    gcccc[0][4] = 0.00018574427553608532;
-    accccgu[0][6] = 0.0019815320102396245;
-    accccgu[1][5] = 0.0021544561056377051;
-    aaccccguu[0][7] = 1.2197252009936157e-05;
-    aaccccguu[0][8] = 0.020625537448534667;
-    aaccccguu[1][7] = 0.022553953705591098;
-    aaccccguu[1][8] = 1.2197252009936157e-05;
-    aaccccguu[2][6] = 0.022593777679140784;
-
-    matrix truth[] = {aaaaa, aaaau, gcccc, accccgu, aaccccguu};
-
-    for (int i = 0; i < 5; i++) {
-        RNA thor(seqs[i], false, ener, true, false);
-        for (int j = 0; j < seqs[i].length(); j++) {
-            REQUIRE( vect_almost_equal( thor.get_bpp_full()[j], truth[i][j]) );
-        }
-    }
 }
 
 TEST_CASE("Gradient of basepair probabilities for linear sequences","[grad_bpp_linear]") {
