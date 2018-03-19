@@ -145,9 +145,10 @@ TEST_CASE("Basepair probabilities for linear sequences", "[bpp_linear]") {
     cgccccccg[3][8] = 0.023845914454352659;
     cgccccccg[4][8] = 0.023845914454352659;
 
-    matrix truth[] = {aaaaa, aaaau, gcccc, accccgu, aaccccguu};
+    matrix truth[] = {aaaaa, auaaa, aaaau, gaaac, gcccc, aacccuu, aucccau, uacccua, cuaaaag, caaaaug, guaaaac, gaaaauc,
+                        cgaaacg, ggaaacc, gcaaagc, aauuuuu, aauuuuuuu, uauuuuuua, ggccccccc, cgccccccg};
 
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 20; i++) {
         RNA thor(seqs[i], false, ener, true, false);
         for (int j = 0; j < seqs[i].length(); j++) {
             REQUIRE( vect_almost_equal( thor.get_bpp_full()[j], truth[i][j]) );
