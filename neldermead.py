@@ -2,7 +2,7 @@ import numpy as np
 import tinyfold as tf
 import scipy.optimize as so
 import matplotlib.pyplot as plt
-#import filtering as fil
+import filtering as fil
 import numpy.random as rd
 
 rna = []
@@ -10,12 +10,15 @@ rna = []
 w = 1e-2
 energies = np.arange(-10,-6)
 
+#Sequence = fil.Sequence
+#KDnoligand = fil.KDnoligand
+#closing_bp_indices = fil.closing_bp_indices
 Sequence = np.loadtxt("eterna_sequences.txt", dtype = 'string', delimiter='\t')
 KDnoligand = np.loadtxt("synthetic_kd.txt", dtype = 'float', delimiter='\t')
 closing_bp_indices = np.loadtxt("ms2_hairpin_closing.txt", delimiter='\t')
 
 '''BPP TRAINING DATA'''
-num_training_examples = 8000
+num_training_examples = 30
 actual_bpp = [] # storing log(bpp) for closing stem of hairpin for each input sequence
 #energy_param = p.energies
 sequences = Sequence[:num_training_examples] #fil.Sequence[:num_training_examples]
@@ -29,7 +32,7 @@ print 'finished gathering training data'
 
 #guess = np.array([5.69, 6., 4.09, -7.09])
 #guess = np.array([5., 5., 3.5, -6.])
-guess = np.array([0., 0., 0., 0.])
+guess = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2])
 
 def cost(param, indices, i):
     l2 = 0.
@@ -60,7 +63,8 @@ for k in range(iterations):
     #print k
     ind = np.arange(num_training_examples)
     #ind = rd.randint(num_training_examples, size = t)
-    par = np.arange(1,5)
+    par = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.]
+    #par = range(1, 13)
     optimization = so.minimize(cost, par, args=(ind, 0), method='Nelder-Mead', callback=check, options={'maxfev': 10000})
     print optimization
     

@@ -12,12 +12,15 @@ Sequence = np.loadtxt("eterna_sequences.txt", dtype = 'string', delimiter='\t')
 KDnoligand = np.loadtxt("synthetic_kd.txt", dtype = 'float', delimiter='\t')
 closing_bp_indices = np.loadtxt("ms2_hairpin_closing.txt", delimiter='\t')
 
-energies = np.array([ 11.99979688,   0.39980603,   0.29989286,  -0.99984654]) #synthetic data
+energies = np.array([ 1.59302437,  3.60824333,  5.42886472,  7.57214443,  8.1729206 ,
+        6.09160341,  7.73909905,  8.37004938, 13.75500795,  6.87480214,
+        1.23732032,  0.95195283])
+#energies = np.array([ 11.99979688,   0.39980603,   0.29989286,  -0.99984654]) #synthetic data
 #energies1 = np.array([ 12.58417779,   2.94746754,   6.77340698,   0.83004456]) # trained on even more filtered data, w = 0.01
 #energies2 = np.array([ 13.58526261,   3.47537565,   2.04322166,  -2.29645279]) # w = 0.01
 
 '''BPP TRAINING DATA'''
-num_training_examples = 8000
+num_training_examples = 30
 actual_bpp = [] # storing log(bpp) for closing stem of hairpin for each input sequence
 
 sequences = Sequence[:num_training_examples]#fil.Sequence[:num_training_examples]
@@ -35,7 +38,7 @@ for i in range(num_training_examples):
     #actual_bpp.append(fil.KDnoligand[i])
 print 'finished gathering training data'
 
-plt.title('R101 Synthetic w/ imperfect prior')
+plt.title('R101 Synthetic w/ perfect prior')
 #plt.scatter(actual_bpp, rna2, c='m', label = 'Full')
 #plt.scatter(actual_bpp, rna1, c='c', label = 'Kd < 25')
 plt.scatter(actual_bpp, rna, label = '\"Uniform\" Kd')

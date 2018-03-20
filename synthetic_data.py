@@ -3,7 +3,7 @@ import tinyfold as tf
 import numpy as np
 import matplotlib.pyplot as plt
 
-energies = [ 12.,   0.4,   0.3,  -1.]
+energies = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2]
 
 kd = []
 log_exp_kd = []
