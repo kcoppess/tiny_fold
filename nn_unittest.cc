@@ -9,6 +9,7 @@ typedef vector< vector< valarray<double> > > tensor;
 typedef vector< valarray<double> > matrix;
 typedef valarray<double> vect;
 
+// testing for T = 298 K and g_loop = 1. kcal/mol
 string seqs[20] = {"AAAAA", "AUAAA", "AAAAU", "GAAAC", "GCCCC", "AACCCUU", "AUCCCAU", "UACCCUA", "CUAAAAG",
                     "CAAAAUG", "GUAAAAC", "GAAAAUC", "CGAAACG", "GGAAACC", "GCAAAGC", "AAUUUUU", 
                     "AAUUUUUUU", "UAUUUUUUA", "GGCCCCCCC", "CGCCCCCCG"};
