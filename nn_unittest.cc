@@ -9,7 +9,7 @@ typedef vector< vector< valarray<double> > > tensor;
 typedef vector< valarray<double> > matrix;
 typedef valarray<double> vect;
 
-// testing for T = 298 K and g_loop = 1. kcal/mol
+// testing for T = 298.15 K and g_loop = 1. kcal/mol
 string seqs[20] = {"AAAAA", "AUAAA", "AAAAU", "GAAAC", "GCCCC", "AACCCUU", "AUCCCAU", "UACCCUA", "CUAAAAG",
                     "CAAAAUG", "GUAAAAC", "GAAAAUC", "CGAAACG", "GGAAACC", "GCAAAGC", "AAUUUUU", 
                     "AAUUUUUUU", "UAUUUUUUA", "GGCCCCCCC", "CGCCCCCCG"};
@@ -27,6 +27,7 @@ bool vect_almost_equal(vect x, vect y) {
     double diff2 = 0;
     for (int i = 0; i < y.size(); i++) {
         diff2 += pow(x[i] - y[i],2);
+        cout << x[i] << " " << y[i] << endl;
     }
     //cout << diff2 << endl;
     return sqrt(diff2) < tol;
