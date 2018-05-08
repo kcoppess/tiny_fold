@@ -229,7 +229,7 @@ double RNA::interior(int gBP, char loop) {
 // calculates the partition function for every subsequence
 void RNA::calc_partition() {
     //XXX toy: double exp_neg_gstack_gloop_over_RT = exp_neg_energy_over_RT[3] / exp_neg_gloop_over_RT;//exp(-invRT*(energies[3] - g_loop));
-    bool AU;
+    bool AU, nextAU;
     double exp_close_loop = exp_neg_energy_over_RT[10] * exp_neg_gloop_over_RT;
     double exp_close_loop_terminalAU = exp_close_loop * exp_neg_energy_over_RT[11];
 
@@ -237,6 +237,7 @@ void RNA::calc_partition() {
         for (int ii = 0; ii < nn-ll+1; ii++) { //iterating over all starting positions for subsequences
             int jj = ii + ll - 1; // ending position for subsequence
             AU = ((sequence[ii] == adenine && sequence[jj] == uracil) || (sequence[ii] == uracil && sequence[jj] == adenine));
+            nextAU = ((sequence[ii+1] == adenine && sequence[jj-1] == uracil) || (sequence[ii+1] == uracil && sequence[jj-1] == adenine));
 
             // partitionBound recursion
             if (jj-ii > 3 && g_base_pair[ii][jj]) { // if possible hairpin: at least 4 positions apart and able to form a base pair
@@ -273,11 +274,18 @@ void RNA::calc_partition() {
                         int index = g_base_pair[ii][jj] - 1;
                         // toy: partitionBound[ii][jj] += partitionBound[ii+1][jj-1] * (interior(g_base_pair[ii][jj], 's') - interior(g_base_pair[ii][jj], 'l'));
                         if (AU) {
-                            partitionBound[ii][jj] += partitionBound[ii+1][jj-1] * exp_neg_energy_over_RT[index] * exp_neg_energy_over_RT[11];
                             partitionBound[ii][jj] += - partitionBound[ii+1][jj-1] * exp_close_loop_terminalAU;
+                            //partitionBound[ii][jj] += partitionBound[ii+1][jj-1] * exp_neg_energy_over_RT[index] * exp_neg_energy_over_RT[11];
+                            
+                            if (nextAU) {
+                                partitionBound[ii][jj] += partitionBound[ii+1][jj-1] * exp_neg_energy_over_RT[index];
+                            } else {
+                                partitionBound[ii][jj] += partitionBound[ii+1][jj-1] * exp_neg_energy_over_RT[index] * exp_neg_energy_over_RT[11];
+                            }
+                            
                         } else {
-                            partitionBound[ii][jj] += partitionBound[ii+1][jj-1] * exp_neg_energy_over_RT[index];
                             partitionBound[ii][jj] += - partitionBound[ii+1][jj-1] * exp_close_loop;
+                            partitionBound[ii][jj] += partitionBound[ii+1][jj-1] * exp_neg_energy_over_RT[index];
                         }
                     }
                 }
@@ -312,7 +320,7 @@ void RNA::calc_partition() {
             // partition recursion
             partition[ii][jj] = 1.0;
             if (isCircular && ii == 0 && jj == nn-1) { // closing the chain for circular RNA
-                partition[ii][jj] += 100000000000000000000000.0;
+                partition[ii][jj] += 1e30;
                 // FIXME need to address circular sequences
                 /* toy
                 for (int dd = 0; dd < nn-4; dd++) {
@@ -538,16 +546,21 @@ void RNA::sum_exterior_basepairs(int ii, int jj, double q_bound_ij, double exp_n
     for (int ll = 0; ll < ii; ll++) {
         bpp[ii][jj] += q_bound_ij * bppS[ll][jj];
     }
+    //std::cout << "::" << bpp[ii][jj] << std::endl;
     if (partitionBound[ii-1][jj+1]) { // stacked pairs
         // toy: bpp[ii][jj] += -q_bound_ij * exp_neg_energy_over_RT[g_base_pair[ii-1][jj+1] - 1] * bpp[ii-1][jj+1] * (exp_neg_gloop_over_RT - exp_neg_gstack_over_RT) / partitionBound[ii-1][jj+1];
         double term = q_bound_ij * bpp[ii-1][jj+1];
         if (AU && nextAU) {
+            //std::cout << "::1::" << term*(exp_close_loop_terminalAU - exp_neg_energy_over_RT[index] * exp_neg_energy_over_RT[11]) / partitionBound[ii-1][jj+1]<< std::endl;
             bpp[ii][jj] += -term * (exp_close_loop_terminalAU - exp_neg_energy_over_RT[index] * exp_neg_energy_over_RT[11]) / partitionBound[ii-1][jj+1];
         } else if (AU && !nextAU) {
+            //std::cout << "::2::" << term*(exp_close_loop - exp_neg_energy_over_RT[index]) / partitionBound[ii-1][jj+1]<< std::endl;
             bpp[ii][jj] += -term * (exp_close_loop - exp_neg_energy_over_RT[index]) / partitionBound[ii-1][jj+1];
         } else if (!AU && nextAU) {
-            bpp[ii][jj] += -term * (exp_close_loop - exp_neg_energy_over_RT[index] * exp_neg_energy_over_RT[11]) / partitionBound[ii-1][jj+1];
+            //std::cout << "::3::" << term*(exp_close_loop_terminalAU - exp_neg_energy_over_RT[index] * exp_neg_energy_over_RT[11]) / partitionBound[ii-1][jj+1]<< std::endl;
+            bpp[ii][jj] += -term * (exp_close_loop_terminalAU - exp_neg_energy_over_RT[index] * exp_neg_energy_over_RT[11]) / partitionBound[ii-1][jj+1];
         } else {
+            //std::cout << "::4::" << term*(exp_close_loop - exp_neg_energy_over_RT[index]) / partitionBound[ii-1][jj+1]<< std::endl;
             bpp[ii][jj] += -term * (exp_close_loop - exp_neg_energy_over_RT[index]) / partitionBound[ii-1][jj+1];
         }
     }
@@ -622,32 +635,30 @@ void RNA::calc_bpp() {
             double q_bound_ij = partitionBound[ii][jj];
             double qbij_over_full = q_bound_ij / full_part;
             
-            std::cout << ii << " " << jj << std::endl;
-            calc_bppS_entry(ii, jj);
+            bpp[ii][jj] = 0;
             
-            if (isCircular) {
-                bpp[ii][jj] = qbij_over_full * exp_neg_energy_over_RT[g_base_pair[ii][jj] - 1];
-                sum_left_interior_loops(ii, jj, qbij_over_full, exp_neg_energy_over_RT[3]);
-                sum_right_interior_loops(ii, jj, qbij_over_full, exp_neg_energy_over_RT[3]);
-            } else {
-                if (ii == 0 && jj == nn-1) {
-                    bpp[ii][jj] = qbij_over_full;
-                    std::cout << "ends ";
-                } else if (ii == 0) {
-                    bpp[ii][jj] = qbij_over_full * partition[jj+1][nn-1];
-                    std::cout << "first end ";
-                } else if (jj == nn-1) {
-                    bpp[ii][jj] = partition[0][ii-1] * qbij_over_full;
-                    std::cout << "second end ";
+            calc_bppS_entry(ii, jj);
+
+            if (g_base_pair[ii][jj]) {
+                if (isCircular) {
+                    bpp[ii][jj] = qbij_over_full * exp_neg_energy_over_RT[g_base_pair[ii][jj] - 1];
+                    sum_left_interior_loops(ii, jj, qbij_over_full, exp_neg_energy_over_RT[3]);
+                    sum_right_interior_loops(ii, jj, qbij_over_full, exp_neg_energy_over_RT[3]);
                 } else {
-                    bpp[ii][jj] = partition[0][ii-1] * qbij_over_full * partition[jj+1][nn-1]; // if base-pair is not enclosed
-                    std::cout << "int " << bpp[ii][jj] << " ";
+                    if (ii == 0 && jj == nn-1) {
+                        bpp[ii][jj] = qbij_over_full;
+                    } else if (ii == 0) {
+                        bpp[ii][jj] = qbij_over_full * partition[jj+1][nn-1];
+                    } else if (jj == nn-1) {
+                        bpp[ii][jj] = partition[0][ii-1] * qbij_over_full;
+                    } else {
+                        bpp[ii][jj] = partition[0][ii-1] * qbij_over_full * partition[jj+1][nn-1]; // if base-pair is not enclosed
+                    }
+                }
+                if (ii != 0 && jj != nn-1) {
+                    sum_exterior_basepairs(ii, jj, q_bound_ij, exp_neg_energy_over_RT[3]);
                 }
             }
-            if (ii != 0 && jj != nn-1) {
-                sum_exterior_basepairs(ii, jj, q_bound_ij, exp_neg_energy_over_RT[3]);
-            }
-            std::cout << bpp[ii][jj] << std::endl;
         }
     }
 }

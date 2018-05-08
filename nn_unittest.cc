@@ -10,9 +10,9 @@ typedef vector< valarray<double> > matrix;
 typedef valarray<double> vect;
 
 // testing for T = 298.15 K and g_loop = 1. kcal/mol
-string seqs[20] = {"AAAAA", "AUAAA", "AAAAU", "GAAAC", "GCCCC", "AACCCUU", "AUCCCAU", "UACCCUA", "CUAAAAG",
+string seqs[21] = {"AAAAA", "AUAAA", "AAAAU", "GAAAC", "GCCCC", "AACCCUU", "AUCCCAU", "UACCCUA", "CUAAAAG",
                     "CAAAAUG", "GUAAAAC", "GAAAAUC", "CGAAACG", "GGAAACC", "GCAAAGC", "AAUUUUU", 
-                    "AAUUUUUUU", "UAUUUUUUA", "GGCCCCCCC", "CGCCCCCCG"};
+                    "AAUUUUUUU", "UAUUUUUUA", "GGCCCCCCC", "CGCCCCCCG", "AAACCCUUU"};
 
 vect ener = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1, 1.2};
 
@@ -27,24 +27,25 @@ bool vect_almost_equal(vect x, vect y) {
     double diff2 = 0;
     for (int i = 0; i < y.size(); i++) {
         diff2 += pow(x[i] - y[i],2);
-        cout << x[i] << " " << y[i] << endl;
+        cout << "  " << x[i] << " " << y[i] << endl;
     }
     //cout << diff2 << endl;
     return sqrt(diff2) < tol;
 }
-/*
+
 TEST_CASE("Partition function for linear sequences", "[partition_linear]") {
-    double part[20] = {1, 1, 1.003811342961177, 1.028885907702594, 1.028885907702594, 1.015670157043195, 1.0079814993687743, 
+    double part[21] = {1, 1, 1.003811342961177, 1.028885907702594, 1.028885907702594, 1.015670157043195, 1.0079814993687743, 
                         1.007925773435268, 1.0346375796305893, 1.0343362346167273, 1.0340816903355927, 1.0338666783457544, 
                         1.0652583475428457, 1.1218674584946227, 1.0631135137836523, 1.0194815000043722, 1.0356200212515567,
-                        1.0270115409114888, 1.2814478393674946, 1.2113566773834208};
-    for (int i = 0; i < 20; i++) {
-        RNA loki(seqs[i], false, ener, false, false);
+                        1.0270115409114888, 1.2814478393674946, 1.2113566773834208, 1.0364471989019666}; //1.0411293813403846
+    for (int i = 0; i < 21; i++) {
         cout << seqs[i] << endl;
+        RNA loki(seqs[i], false, ener, false, false);
         REQUIRE( almost_equal(loki.get_partition(), part[i]) );
     }
 }
-*/
+
+/*
 TEST_CASE("Basepair probabilities for linear sequences", "[bpp_linear]") {
     matrix aaaaa(5, valarray<double>(5));
     matrix auaaa(5, valarray<double>(5));
@@ -66,7 +67,7 @@ TEST_CASE("Basepair probabilities for linear sequences", "[bpp_linear]") {
     matrix uauuuuuua(9, valarray<double>(9));
     matrix ggccccccc(9, valarray<double>(9));
     matrix cgccccccg(9, valarray<double>(9));
-    
+
     aaaau[0][4] = 0.0037968717806414576;
     gaaac[0][4] = 0.028074937645023688;
     gcccc[0][4] = 0.028074937645023688;
@@ -154,11 +155,12 @@ TEST_CASE("Basepair probabilities for linear sequences", "[bpp_linear]") {
         cout << seqs[i] << endl;
         RNA thor(seqs[i], false, ener, true, false);
         for (int j = 0; j < seqs[i].length(); j++) {
+            cout << j << endl;
             REQUIRE( vect_almost_equal( thor.get_bpp_full()[j], truth[i][j]) );
         }
     }
 }
-
+*/
 /*
 TEST_CASE("Partition gradients for linear sequences", "[gradient_part_linear]") {
     matrix grad = {{0,0,0,0},

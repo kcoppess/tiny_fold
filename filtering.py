@@ -53,11 +53,22 @@ Sequence = Sequence1
 NumberOfClusters1 = NumberOfClusters11
 print len(KDnoligand)
 '''
-
 closing_bp_indices = []
+ms2_basepairs = []
 for i in range(len(Sequence)):
     h = Sequence[i].index(ms2_hairpin)
     closing_bp_indices.append(ms2_hairpin_basepairs[0] + [h, h])
+    hp = []
+    for i in range(len(ms2_hairpin_basepairs)):
+        hp.append(ms2_hairpin_basepairs[i][0] + h)
+        hp.append(ms2_hairpin_basepairs[i][1] + h)
+    ms2_basepairs.append(hp)
+
+np.savetxt("experimental/R101_Sequence.txt", Sequence, delimiter='\t', fmt="%s")
+np.savetxt("experimental/R101_KDnoligand.txt", KDnoligand, delimiter='\t')
+np.savetxt("experimental/R101_NumberOfClusters1.txt", NumberOfClusters1, delimiter='\t')
+np.savetxt("experimental/R101_closing_bp_indices.txt", closing_bp_indices, delimiter='\t', fmt="%i")
+np.savetxt("experimental/R101_ms2_hairpin_basepairs.txt", ms2_basepairs, delimiter='\t', fmt="%i")
 '''
 plt.hist(KDnoligand, bins='auto')
 plt.title('Experimental Kd Distribution')

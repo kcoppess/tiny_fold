@@ -8,31 +8,31 @@ rna = []
 
 alpha = 1.
 
-w = 1e-22
-energies = np.arange(-50,-46)
+w = 1e-2
+energies = np.arange(-10,2)
 
 '''BPP TRAINING DATA'''
-num_training_examples = 100
+num_training_examples = 1000
 actual_bpp = [] # storing bpp for closing stem of hairpin for each input sequence
 #energy_param = p.energies
 sequences = fil.Sequence[:num_training_examples] #p.training_sequences[:10]
 for i in range(num_training_examples):
-    rna.append(tf.RNA(sequences[i], False, list(energies), True, True))
-    actual_bpp.append((1e-9) / fil.KDnoligand[i])
+    rna.append(tf.RNA(sequences[i], False, list(energies), True, False))
+    actual_bpp.append(np.log(1e-9) - np.log(fil.KDnoligand[i]))
 print 'finished gathering training data'
 
-guess = np.array([5.69, 6., 4.09, -7.09])
+guess = np.zeros(12)
 
 def cost(param, i, j):
     l2 = 0.
     for mm in range(i, j):
         rna[mm].update_energy(list(param))
         bp = fil.closing_bp_indices[mm]
-        l2 += alpha * (actual_bpp[mm] - rna[mm].get_bpp(bp[0], bp[1])) ** 2
+        l2 += alpha * (actual_bpp[mm] - rna[mm].get_log_bpp(bp[0], bp[1])) ** 2
     prior = guess - param
     l2 += w * np.dot(prior, prior)
     return l2
-
+'''
 def cost_gradient(param, i, j):
     l2_grad = np.zeros(4)
     for mm in range(i, j):
@@ -43,29 +43,30 @@ def cost_gradient(param, i, j):
     prior = guess - param
     l2_grad += -2 * w * prior
     return l2_grad
-
+'''
 param_iterations = []
 prior_updates = []
 def check(x):
     param_iterations.append(cost(x,0,num_training_examples))
     new = guess - x
     prior_updates.append(w * np.dot(new, new))
-    print str(cost(x,0,num_training_examples)) + ' ' + str(cost_gradient(x, 0, num_training_examples)) + ' ' + str(x)
+    print str(cost(x,0,num_training_examples)) + ' ' + str(x) #+ str(cost_gradient(x, 0, num_training_examples)) + ' ' + str(x)
     return
 
-
-par = np.arange(-10,-6)
-t = 0
+par = np.array([-0.93, -1.1, -1.33, -2.08, -2.11, -2.24, -2.35, -2.36, -3.26, -3.42, 4.09, 0.45])
+t = 1
 while t < 1:
     for p in range(5):
-        optimization = so.minimize(cost, par, args=(p*10, (p+1)*10), method='BFGS', jac=cost_gradient, tol=1e-20, callback=check)
+        optimization = so.minimize(cost, par, args=(p*10, (p+1)*10), method='BFGS', tol=1e-10, callback=check)
+        #optimization = so.minimize(cost, par, args=(p*10, (p+1)*10), method='BFGS', jac=cost_gradient, tol=1e-20, callback=check)
         par = optimization.x
     t += 1
-optimization = so.minimize(cost, par, args=(0, num_training_examples), method='BFGS', jac=cost_gradient, tol=1e-20, callback=check)
+optimization = so.minimize(cost, par, args=(0, num_training_examples), method='BFGS', tol=1e-10, callback=check)
+#optimization = so.minimize(cost, par, args=(0, num_training_examples), method='BFGS', jac=cost_gradient, tol=1e-20, callback=check)
 par = optimization.x
 
 print optimization
-
+'''
 final = []
 for w in range(num_training_examples):
     bp = fil.closing_bp_indices[w]
@@ -80,7 +81,7 @@ ssreg = np.sum((yhat-ybar)**2)
 sstot = np.sum((y - ybar)**2)
 rsquared = 1 - (ssreg/sstot)
 print rsquared
-
+'''
 n = len(prior_updates)
 k = range(n)
 
