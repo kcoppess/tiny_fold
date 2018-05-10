@@ -3,7 +3,7 @@ from subprocess import call
 
 seq = open("experimental/R101_Sequence.txt", 'r')
 
-for ii in range(130): #12089):
+for ii in range(1000): #12089):
     SEQUENCE = seq.readline().rstrip()
     NN = len(SEQUENCE)
     BPP_MATRIX = np.zeros((NN, NN))

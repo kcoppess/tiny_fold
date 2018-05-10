@@ -54,8 +54,8 @@ for ii in range(100):
     sns.heatmap(tf_bpp_matrix, xticklabels=1, yticklabels=1, cmap="Greys", ax=ax[0], vmin = 0., vmax = 1.)
     sns.heatmap(vienna_bpp_matrix, xticklabels=1, yticklabels=1, cmap="Greys", ax=ax[1], vmin = 0., vmax = 1.)
     if SEQUENCE in trouble:
-        plt.savefig('/Users/kcoppess/Desktop/tf_vienna/trouble/{}.png'.format(SEQUENCE))
+        plt.savefig('/Users/kcoppess/Desktop/tf_vienna/closing_bp/trouble/{}.png'.format(SEQUENCE))
     else:
-        plt.savefig('/Users/kcoppess/Desktop/tf_vienna/fine/{}.png'.format(SEQUENCE))
+        plt.savefig('/Users/kcoppess/Desktop/tf_vienna/closing_bp/fine/{}.png'.format(SEQUENCE))
 
 #plt.show()

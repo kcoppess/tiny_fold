@@ -26,7 +26,7 @@ def extract(sequence_string):
 def main():
     seq = open("experimental/R101_Sequence.txt", 'r')
     
-    for ii in range(130):#12089):
+    for ii in range(1000):#12089):
         SEQUENCE = seq.readline().rstrip()
         sequence = open("sequence_input.txt", 'w')
         sequence.write(SEQUENCE)
